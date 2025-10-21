@@ -1,0 +1,162 @@
+"""
+Data logging module for proxy requests and responses.
+
+Supports logging to local filesystem or Azure Blob Storage using fsspec.
+"""
+
+import json
+import os
+from datetime import datetime
+from typing import Optional, Dict, Any
+
+import fsspec
+
+
+class DataLogger:
+    """Handles logging of request/response data to storage."""
+
+    def __init__(self):
+        """Initialize the data logger with configuration from environment."""
+        self.storage_type = os.getenv("STORAGE_TYPE", "local")
+        
+        # Build storage path
+        if self.storage_type == "azure":
+            azure_account_name = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
+            azure_account_key = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
+            azure_container = os.getenv("AZURE_STORAGE_CONTAINER", "proxy-logs")
+            if not azure_account_name:
+                raise ValueError(
+                    "AZURE_STORAGE_ACCOUNT_NAME is required when STORAGE_TYPE=azure"
+                )
+            # fsspec Azure path format
+            self.base_path = f"az://{azure_container}"
+            self.storage_options = {
+                "account_name": azure_account_name,
+            }
+            if azure_account_key:
+                self.storage_options["account_key"] = azure_account_key
+        else:
+            self.base_path = os.getenv("LOCAL_LOG_DIR", "logs")
+            self.storage_options = {}
+        
+        # Create filesystem instance
+        self.fs = fsspec.filesystem(
+            "az" if self.storage_type == "azure" else "file",
+            **self.storage_options
+        )
+        
+        # Ensure base directory/container exists
+        try:
+            self.fs.makedirs(self.base_path, exist_ok=True)
+        except Exception:
+            pass  # May already exist or be a container
+
+    def get_log_filename(self, model: Optional[str] = None) -> str:
+        """
+        Generate log filename based on model and date.
+        
+        Args:
+            model: Model name from request (e.g., "gpt-4")
+        
+        Returns:
+            Filename in format: {model}_{YYYYMMDD}.jsonl
+        """
+        date_str = datetime.utcnow().strftime("%Y%m%d")
+        model_name = model.replace("/", "_") if model else "unknown"
+        return f"{model_name}_{date_str}.jsonl"
+
+    def get_full_path(self, filename: str) -> str:
+        """
+        Get the full storage path for a log file.
+        
+        Args:
+            filename: Log filename
+        
+        Returns:
+            Full path (local or Azure)
+        """
+        if self.storage_type == "azure":
+            return f"{self.base_path}/{filename}"
+        else:
+            return f"{self.base_path}/{filename}"
+
+    def log_entry(self, log_entry: Dict[str, Any]) -> None:
+        """
+        Append a log entry to storage.
+        
+        Args:
+            log_entry: Dictionary containing request/response data
+        """
+        # Extract model from request body
+        model = None
+        if log_entry.get("request", {}).get("body"):
+            body = log_entry["request"]["body"]
+            if isinstance(body, dict):
+                model = body.get("model")
+        
+        filename = self.get_log_filename(model)
+        full_path = self.get_full_path(filename)
+        log_line = json.dumps(log_entry) + '\n'
+        
+        try:
+            # Append to file (fsspec handles both local and Azure)
+            with self.fs.open(full_path, 'a', encoding='utf-8') as f:
+                f.write(log_line)
+        except Exception as e:
+            print(f"Error logging to storage: {e}")
+            # Don't raise - logging failures shouldn't break the proxy
+
+    def create_log_entry(
+        self,
+        method: str,
+        path: str,
+        request_headers: Dict[str, str],
+        request_body: Any,
+    ) -> Dict[str, Any]:
+        """
+        Create a log entry structure for a request.
+        
+        Args:
+            method: HTTP method
+            path: Request path
+            request_headers: Request headers
+            request_body: Parsed request body
+        
+        Returns:
+            Log entry dictionary with request data
+        """
+        return {
+            "timestamp": datetime.utcnow().isoformat(),
+            "request": {
+                "method": method,
+                "path": path,
+                "headers": request_headers,
+                "body": request_body,
+            },
+            "response": {},
+        }
+
+    def add_response_to_entry(
+        self,
+        log_entry: Dict[str, Any],
+        status_code: int,
+        response_headers: Dict[str, str],
+        response_body: Any,
+        streaming: bool = False,
+    ) -> None:
+        """
+        Add response data to an existing log entry.
+        
+        Args:
+            log_entry: Log entry to update
+            status_code: HTTP status code
+            response_headers: Response headers
+            response_body: Parsed response body
+            streaming: Whether the response was streamed
+        """
+        log_entry["response"] = {
+            "status_code": status_code,
+            "headers": response_headers,
+            "body": response_body,
+            "streaming": streaming,
+        }
