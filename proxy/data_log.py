@@ -5,11 +5,22 @@ Supports logging to local filesystem or Azure Blob Storage using fsspec.
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-import fsspec
+import fsspec  # type: ignore
+
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter(
+    '[DataLogger] %(levelname)s - %(message)s'
+))
+
+logger = logging.getLogger(__name__)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False  # Don't propagate to root logger
 
 
 class DataLogger:
@@ -18,7 +29,8 @@ class DataLogger:
     def __init__(self):
         """Initialize the data logger with configuration from environment."""
         self.storage_type = os.getenv("STORAGE_TYPE", "local")
-        
+
+        logger.info("Initializing DataLogger with storage type: %s", self.storage_type)
         # Build storage path
         if self.storage_type == "azure":
             azure_account_name = os.getenv("AZURE_STORAGE_ACCOUNT_NAME")
@@ -38,26 +50,29 @@ class DataLogger:
         else:
             self.base_path = os.getenv("LOCAL_LOG_DIR", "logs")
             self.storage_options = {}
-        
+
         # Create filesystem instance
         self.fs = fsspec.filesystem(
             "az" if self.storage_type == "azure" else "file",
             **self.storage_options
         )
-        
+
         # Ensure base directory/container exists
         try:
             self.fs.makedirs(self.base_path, exist_ok=True)
-        except Exception:
-            pass  # May already exist or be a container
+        except (OSError, IOError) as e:
+            # Some filesystems or remote providers may raise OS-related errors
+            # when the directory/container already exists or cannot be created;
+            # log at debug level so it can be inspected if needed.
+            logger.debug("Could not create base path '%s': %s", self.base_path, e)
 
     def get_log_filename(self, model: Optional[str] = None) -> str:
         """
         Generate log filename based on model and date.
-        
+
         Args:
             model: Model name from request (e.g., "gpt-4")
-        
+
         Returns:
             Filename in format: {model}_{YYYYMMDD}.jsonl
         """
@@ -68,10 +83,10 @@ class DataLogger:
     def get_full_path(self, filename: str) -> str:
         """
         Get the full storage path for a log file.
-        
+
         Args:
             filename: Log filename
-        
+
         Returns:
             Full path (local or Azure)
         """
@@ -83,28 +98,28 @@ class DataLogger:
     def log_entry(self, log_entry: Dict[str, Any]) -> None:
         """
         Append a log entry to storage.
-        
+
         Args:
             log_entry: Dictionary containing request/response data
         """
+        logger.debug("Logging entry: %s", log_entry)
         # Extract model from request body
         model = None
         if log_entry.get("request", {}).get("body"):
             body = log_entry["request"]["body"]
             if isinstance(body, dict):
                 model = body.get("model")
-        
+
         filename = self.get_log_filename(model)
         full_path = self.get_full_path(filename)
         log_line = json.dumps(log_entry) + '\n'
-        
+
         try:
             # Append to file (fsspec handles both local and Azure)
             with self.fs.open(full_path, 'a', encoding='utf-8') as f:
                 f.write(log_line)
-        except Exception as e:
-            print(f"Error logging to storage: {e}")
-            # Don't raise - logging failures shouldn't break the proxy
+        except (OSError, IOError) as e:
+            logger.error("Error logging to storage: %s", e)
 
     def create_log_entry(
         self,
@@ -115,13 +130,13 @@ class DataLogger:
     ) -> Dict[str, Any]:
         """
         Create a log entry structure for a request.
-        
+
         Args:
             method: HTTP method
             path: Request path
             request_headers: Request headers
             request_body: Parsed request body
-        
+
         Returns:
             Log entry dictionary with request data
         """
@@ -146,7 +161,7 @@ class DataLogger:
     ) -> None:
         """
         Add response data to an existing log entry.
-        
+
         Args:
             log_entry: Log entry to update
             status_code: HTTP status code

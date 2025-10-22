@@ -42,8 +42,18 @@ A FastAPI-based proxy service for the OpenAI API with streaming support.
    Or with uvicorn directly:
 
    ```bash
-   uvicorn main:app --reload --port 8000
+   uvicorn main:app --reload --port 8888
    ```
+
+## Docker Deployment
+
+See [CONTAINER.md](CONTAINER.md)
+
+### Health Check:
+
+```bash
+curl http://localhost:8888/health
+```
 
 ## Usage
 
@@ -170,8 +180,10 @@ Each log entry is a single JSON line with:
 
 ## Architecture Notes
 
-- **Storage**: Uses `fsspec` for unified interface to local filesystem and Azure Blob Storage
-- **Azure Backend**: Uses `adlfs` (Azure Data Lake File System) for Azure operations
+- **Storage**: Uses `fsspec` for unified interface to local filesystem and Azure
+  Blob Storage
+- **Azure Backend**: Uses `adlfs` (Azure Data Lake File System) for Azure
+  operations
 - Both storage backends support efficient append operations
 
 ## Future Enhancements
@@ -187,3 +199,19 @@ Each log entry is a single JSON line with:
 - `GET /` - Service information
 - `GET /health` - Health check
 - `* /v1/{path}` - Proxy to OpenAI API v1 endpoints
+
+## CI/CD
+
+The proxy container is automatically built and pushed to GitHub Container
+Registry on:
+
+- Push to `main` branch (when files in `proxy/` change)
+- Manual workflow dispatch
+
+**Image tags:**
+
+- `latest` - Most recent build
+- `YYYYMMDD` - Date-based tag (e.g., `20241022`)
+- `YYYYMMDD-sha-abc123` - Date + git SHA
+
+**Registry:** `ghcr.io/uw-ssec/llmaven/proxy`
