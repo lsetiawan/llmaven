@@ -7,7 +7,7 @@ Supports logging to local filesystem or Azure Blob Storage using fsspec.
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
 import fsspec  # type: ignore
@@ -66,7 +66,7 @@ class DataLogger:
             # log at debug level so it can be inspected if needed.
             logger.debug("Could not create base path '%s': %s", self.base_path, e)
 
-    def get_log_filename(self, model: Optional[str] = None) -> str:
+    def _get_log_filename(self, model: Optional[str] = None) -> str:
         """
         Generate log filename based on model and date.
 
@@ -76,24 +76,12 @@ class DataLogger:
         Returns:
             Filename in format: {model}_{YYYYMMDD}.jsonl
         """
-        date_str = datetime.utcnow().strftime("%Y%m%d")
+        date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
         model_name = model.replace("/", "_") if model else "unknown"
         return f"{model_name}_{date_str}.jsonl"
 
-    def get_full_path(self, filename: str) -> str:
-        """
-        Get the full storage path for a log file.
-
-        Args:
-            filename: Log filename
-
-        Returns:
-            Full path (local or Azure)
-        """
-        if self.storage_type == "azure":
-            return f"{self.base_path}/{filename}"
-        else:
-            return f"{self.base_path}/{filename}"
+    def _get_full_path(self, filename: str) -> str:
+        return f"{self.base_path}/{filename}"
 
     def log_entry(self, log_entry: Dict[str, Any]) -> None:
         """
@@ -110,8 +98,8 @@ class DataLogger:
             if isinstance(body, dict):
                 model = body.get("model")
 
-        filename = self.get_log_filename(model)
-        full_path = self.get_full_path(filename)
+        filename = self._get_log_filename(model)
+        full_path = self._get_full_path(filename)
         log_line = json.dumps(log_entry) + '\n'
 
         try:

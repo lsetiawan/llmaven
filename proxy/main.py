@@ -90,7 +90,6 @@ async def proxy_request(
     # Build the downstream URL
     url = f"{OPENAI_BASE_URL}{path}"
 
-    # print(f"Proxying request to: {url}")
     # Create HTTP client with streaming support
     async with httpx.AsyncClient(timeout=PROXY_TIMEOUT) as client:
         try:
@@ -185,15 +184,7 @@ async def proxy_openai_v1(request: Request, path: str):
     - /v1/models
     - And all other v1 endpoints
     """
-    # print(f"[DEBUG] Proxying {request.method} /v1/{path}")
     return await proxy_request(request, f"/v1/{path}", method=request.method)
-
-
-# @app.post("/v1/chat/completions")
-# async def chat_completions(request: Request):
-#     """Explicit endpoint for chat completions to ensure it's caught."""
-#     print("[DEBUG] Chat completions endpoint hit")
-#     return await proxy_request(request, "/v1/chat/completions", method="POST")
 
 
 @app.get("/health")
