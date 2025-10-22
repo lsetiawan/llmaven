@@ -25,7 +25,10 @@ docker-py = ">=7.1.0,<7.2"
 testcontainers = ">=4.8.0,<4.9"
 tenacity = "==8.5.0"
 pytest = ">=8.3.5,<9"
-fastapi = ">=0.115.11,<0.116"
+fastapi = ">=0.119.1,<0.120"
+uvicorn = ">=0.38.0,<0.39"
+httpx = ">=0.28.1,<0.29"
+python-dotenv = ">=1.1.1,<2"
 
 [pypi-dependencies]
 langchain = "~=0.3.26"
@@ -43,6 +46,7 @@ transformers = "~=4.53.0"
 accelerate = ">=0.26.0"
 bitsandbytes = ">=0.42.0, <0.46"
 llama_cpp_python = "~=0.3.9"
+openai = ">=2.3"
 
 [target.linux-64.pypi-dependencies]
 llama-cpp-python = { url = "https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.4-cu124/llama_cpp_python-0.3.4-cp311-cp311-linux_x86_64.whl" }

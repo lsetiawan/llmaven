@@ -181,3 +181,5 @@ resources/
 
 # Model
 models/
+# Proxy logs
+logs/*.jsonl
