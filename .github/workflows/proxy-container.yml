@@ -5,7 +5,7 @@ on:
         branches:
             - main
         paths:
-            - "proxy/**"
+            - "archive/proxy/**"
             - ".github/workflows/proxy-container.yml"
     workflow_dispatch:
 
@@ -48,7 +48,7 @@ jobs:
               uses: docker/build-push-action@v5
               with:
                   context: .
-                  file: ./proxy/Dockerfile
+                  file: ./archive/proxy/Dockerfile
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}

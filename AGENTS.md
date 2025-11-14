@@ -4,6 +4,41 @@
 
 ---
 
+## Quick Reference: Recent Architecture Changes
+
+**IMPORTANT**: LLMaven has been refactored from a collection of standalone scripts into a modern, installable Python package:
+
+### What Changed
+- **Package Structure**: Code moved from `app/` and `core/` to `src/llmaven/` (standard Python package layout)
+- **CLI Interface**: New `llmaven` command with `serve`, `ui`, and `version` subcommands
+- **API Versioning**: Endpoints moved to `/v1/` prefix (was `/api/`)
+- **Configuration**: Pydantic Settings with environment variable support
+- **Schemas**: Explicit Pydantic models for request/response validation
+- **Installability**: Package can be installed via `pip install -e .` or `pixi`
+
+### Current Entry Points
+```bash
+# New (Recommended)
+llmaven serve              # Start FastAPI backend
+llmaven ui                 # Launch Streamlit frontend
+
+# Legacy (Still Works)
+pixi run serve-panel       # Original Panel UI
+```
+
+### Directory Mapping
+| Old Location | New Location | Status |
+|--------------|--------------|--------|
+| `app/` | `src/llmaven/` | Migrated |
+| `app/routers/` | `src/llmaven/v1/endpoints/` | Migrated |
+| `core/` | `src/llmaven/core/` | Migrated |
+| `frontend/` | `src/llmaven/frontend/` | Migrated |
+| `proxy/` | `archive/proxy/` | Archived (unused) |
+| `infra/` | `archive/infra/` | Archived (unused) |
+| `legacy/` | `archive/legacy/` | Archived (unused) |
+
+---
+
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
@@ -48,32 +83,50 @@ LLMaven is a scientific research tool that democratizes AI-based research by pro
 
 ### High-Level Architecture
 
-LLMaven consists of three distinct but related systems:
+LLMaven has been refactored into a modern, modular architecture with three distinct but related systems:
 
+```mermaid
+graph TB
+    subgraph LLMaven["LLMaven Project"]
+        subgraph API["LLMaven API - FastAPI + CLI"]
+            REST["REST API v1"]
+            UI["Streamlit UI"]
+            CLI["CLI Interface"]
+            VDB["Vector DB"]
+        end
+
+        subgraph Core["Core Libraries - src/llmaven"]
+            Retriever["Retriever"]
+            Generator["Generator"]
+            Embeddings["Embeddings"]
+            Schemas["Schemas"]
+            Services["Services"]
+        end
+
+        subgraph Archive["Archived Code - archive/"]
+            Proxy["OpenAI Proxy"]
+            Infra["Infrastructure"]
+            Legacy["Legacy Panel UI"]
+        end
+    end
+
+    API --> Core
+
+    style LLMaven fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style API fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    style Core fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    style Archive fill:#e0e0e0,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         LLMaven Project                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌────────────────────┐  ┌──────────────────┐  ┌─────────────┐ │
-│  │   RAG Application  │  │  OpenAI Proxy    │  │ Infrastructure │
-│  │                    │  │                  │  │               │ │
-│  │ • Panel UI         │  │ • FastAPI Proxy  │  │ • Azure IaC   │ │
-│  │ • FastAPI Backend  │  │ • Auth Layer     │  │ • Pulumi      │ │
-│  │ • Streamlit UI     │  │ • Logging        │  │ • Table Store │ │
-│  │ • Vector DB        │  │ • Streaming      │  │               │ │
-│  └────────────────────┘  └──────────────────┘  └─────────────┘ │
-│           │                      │                     │         │
-│           ▼                      ▼                     ▼         │
-│  ┌────────────────────┐  ┌──────────────────┐  ┌─────────────┐ │
-│  │  Core Libraries    │  │  Azure Blob      │  │ Azure Tables │ │
-│  │                    │  │  Storage         │  │ (User Keys)  │ │
-│  │ • Retriever        │  │  (Logs)          │  │              │ │
-│  │ • Generator        │  │                  │  │              │ │
-│  │ • Embeddings       │  │                  │  │              │ │
-│  └────────────────────┘  └──────────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+### Current Architecture (Post-Refactor)
+
+The project recently underwent a major refactoring to create a modern, installable Python package with:
+
+1. **LLMaven API Package** (src/llmaven/): Installable package with CLI and API
+2. **Archived Code** (archive/): Unused components moved to archive:
+   - OpenAI Proxy Service (archive/proxy/): Standalone authentication and logging proxy
+   - Infrastructure as Code (archive/infra/): Azure resource provisioning
+   - Legacy Applications (archive/legacy/): Original Panel-based chat UI
 
 ### Architectural Patterns
 
@@ -128,65 +181,87 @@ response = language_model.inference(prompt_with_context)
 
 ```
 llmaven/
-├── app/                          # FastAPI RAG application (modular backend)
-│   ├── main.py                   # FastAPI app entry point
-│   ├── routers/                  # API route handlers
-│   │   ├── retrieve.py           # Retrieval endpoint
-│   │   └── generate.py           # Generation endpoint
-│   └── services/                 # Business logic layer
-│       ├── retrieval_service.py  # Retrieval orchestration
-│       └── generation_service.py # Generation + model caching
+├── src/llmaven/                  # Main LLMaven package (installable)
+│   ├── __init__.py              # Package initialization with version
+│   ├── main.py                  # FastAPI application entry point
+│   ├── cli.py                   # CLI commands (serve, ui, version)
+│   ├── config.py                # Web service configuration
+│   │
+│   ├── v1/                      # API version 1 endpoints
+│   │   ├── router.py            # Main v1 router aggregator
+│   │   └── endpoints/           # Individual endpoint modules
+│   │       ├── retrieve.py      # Document retrieval endpoint
+│   │       └── generate.py      # Text generation endpoint
+│   │
+│   ├── schemas/                 # Pydantic request/response models
+│   │   ├── retrieve.py          # RetrieveRequest schema
+│   │   └── generate.py          # GenerationRequest schema
+│   │
+│   ├── services/                # Business logic layer
+│   │   ├── retrieval_service.py # Retrieval orchestration
+│   │   └── generation_service.py# Generation + model caching
+│   │
+│   ├── core/                    # Core ML/AI components
+│   │   ├── embeddings/
+│   │   │   └── embedding_model.py  # HuggingFace embeddings
+│   │   ├── retriever/
+│   │   │   └── retriever.py     # Qdrant vector DB operations
+│   │   └── generator/
+│   │       ├── language_model.py   # HuggingFace LLM with quantization
+│   │       └── embedding_model.py  # Alternative embedding utilities
+│   │
+│   └── frontend/                # Streamlit UI components
+│       ├── app.py               # Streamlit RAG chatbot interface
+│       └── config.py            # Frontend-specific configuration
 │
-├── core/                         # Reusable ML/AI components (library code)
-│   ├── embeddings/
-│   │   └── embedding_model.py    # HuggingFace embeddings wrapper
-│   ├── retriever/
-│   │   └── retriever.py          # Qdrant vector DB + retrieval logic
-│   └── generator/
-│       ├── language_model.py     # HuggingFace LLM with quantization
-│       └── embedding_model.py    # Alternate embedding utilities
-│
-├── proxy/                        # OpenAI API proxy service
-│   ├── main.py                   # FastAPI proxy server
-│   ├── auth.py                   # Azure Table Storage authentication
-│   ├── data_log.py               # Request/response logging (local/Azure)
-│   ├── requirements.txt          # Proxy-specific dependencies
-│   ├── Dockerfile               # Multi-stage production container
-│   └── .env.example             # Configuration template
-│
-├── frontend/                     # Streamlit UI (alternative interface)
-│   ├── app.py                   # Streamlit RAG chatbot
-│   └── config.py                # Frontend configuration
-│
-├── infra/                        # Infrastructure as Code (Pulumi + Azure)
-│   ├── __main__.py              # Pulumi program (storage + tables)
-│   ├── users.py                 # User management utilities
-│   └── README.md                # Infrastructure setup guide
-│
-├── legacy/                       # Original/reference implementations
-│   ├── rubin-panel-app.py       # Panel-based chat UI (primary demo)
-│   ├── rubin-app-gpu.py         # GPU-optimized variant
-│   ├── download_models.py       # Model download utilities
-│   └── notebooks/               # Jupyter notebooks
+├── archive/                      # Archived code (unused)
+│   ├── proxy/                   # OpenAI API proxy service (archived)
+│   │   ├── main.py              # FastAPI proxy server
+│   │   ├── auth.py              # Azure Table Storage authentication
+│   │   ├── data_log.py          # Request/response logging
+│   │   ├── requirements.txt     # Proxy-specific dependencies
+│   │   ├── Dockerfile          # Multi-stage production container
+│   │   └── .env.example        # Configuration template
+│   │
+│   ├── infra/                   # Infrastructure as Code (archived)
+│   │   ├── __main__.py         # Pulumi program (storage + tables)
+│   │   ├── users.py            # User management utilities
+│   │   ├── Pulumi.yaml         # Pulumi project configuration
+│   │   └── README.md           # Infrastructure setup guide
+│   │
+│   └── legacy/                  # Original/reference implementations (archived)
+│       ├── rubin-panel-app.py  # Panel-based chat UI (original demo)
+│       ├── rubin-app-gpu.py    # GPU-optimized variant
+│       ├── download_models.py  # Model download utilities
+│       ├── vector_store.py     # Legacy vector store utilities
+│       └── notebooks/          # Jupyter notebooks for experiments
 │
 ├── tests/                        # Test suite
-│   ├── test_retriever.py        # Retrieval API tests
+│   ├── test_retriever.py        # Retrieval API integration tests
 │   ├── test_generator.py        # Generation tests
-│   └── debug_language_model.py  # Debug utilities
+│   └── debug_language_model.py  # Debugging utilities
 │
-├── eval/                         # Evaluation notebooks
-│   └── Scrape-discourse.ipynb   # Data collection tools
+├── eval/                         # Evaluation and data collection
+│   └── Scrape-discourse.ipynb   # Data collection notebooks
 │
-├── .github/workflows/            # CI/CD pipelines
-│   └── proxy-container.yml      # Docker build/push for proxy
+├── docker/                       # Docker compose configurations
+│   └── .env                     # Docker environment variables
+│
+├── .github/                      # GitHub configuration
+│   ├── workflows/
+│   │   └── proxy-container.yml  # Docker build/push for proxy (may be outdated)
+│   ├── dependabot.yml           # Dependency updates
+│   └── release.yml              # Release configuration
 │
 ├── .devcontainer/               # Dev container configs
 │   └── Dockerfile              # Development environment
 │
+├── pyproject.toml               # Python project metadata & dependencies
 ├── pixi.toml                    # Pixi package manager config
 ├── pixi.lock                    # Locked dependencies
 ├── .pre-commit-config.yaml      # Pre-commit hooks
 ├── .flake8                      # Linting configuration
+├── AGENTS.md                    # This file - technical reference
 └── README.md                    # User-facing documentation
 ```
 
@@ -194,19 +269,107 @@ llmaven/
 
 | Directory | Purpose | When to Modify |
 |-----------|---------|----------------|
-| `app/` | Backend API for RAG | Adding new API endpoints, service logic |
-| `core/` | Shared ML components | Changing retrieval/generation algorithms |
-| `proxy/` | OpenAI API proxy | Authentication, logging, or proxy features |
-| `frontend/` | Streamlit UI | User interface changes |
-| `infra/` | Cloud infrastructure | Azure resource modifications |
-| `legacy/` | Reference code | Avoid modifying; prefer `app/` for new features |
+| `src/llmaven/` | Main installable package | Core API development, adding features |
+| `src/llmaven/v1/` | API version 1 endpoints | Adding/modifying REST endpoints |
+| `src/llmaven/core/` | ML/AI components | Changing retrieval/generation algorithms |
+| `src/llmaven/services/` | Business logic | Orchestration and service-level logic |
+| `src/llmaven/schemas/` | API contracts | Request/response data models |
+| `src/llmaven/frontend/` | Streamlit UI | User interface changes |
+| `archive/proxy/` | OpenAI API proxy (archived) | **Do not modify** - archived code |
+| `archive/infra/` | Cloud infrastructure (archived) | **Do not modify** - archived code |
+| `archive/legacy/` | Original implementations (archived) | **Do not modify** - reference only |
 | `tests/` | Test suite | Adding tests for new features |
+| `docker/` | Container orchestration | Multi-service deployment setup |
 
 ---
 
 ## 4. Key Components
 
-### 4.1 Retriever (`core/retriever/retriever.py`)
+### 4.1 CLI Interface (`src/llmaven/cli.py`)
+
+**Responsibility**: Command-line interface for running LLMaven services
+
+**Commands**:
+```python
+llmaven serve    # Start the FastAPI backend server
+llmaven ui       # Launch the Streamlit frontend
+llmaven version  # Display version information
+```
+
+**Key Features**:
+- **serve**: Supports both development (uvicorn) and production (gunicorn) modes
+- **ui**: Automatically launches Streamlit with configurable host/port
+- **Environment-aware**: Development vs production configurations
+- **Worker management**: Auto-calculates optimal worker count for production
+
+**Usage Examples**:
+```bash
+# Development mode with auto-reload
+llmaven serve --env development --reload
+
+# Production mode with 4 workers
+llmaven serve --env production --workers 4
+
+# Launch UI on custom port
+llmaven ui --port 8080 --no-browser
+
+# Check version
+llmaven version
+```
+
+**Design Decisions**:
+- Uses Typer for CLI framework (type-safe, auto-documented)
+- Supports both uvicorn (dev) and gunicorn (prod) deployment modes
+- Integrated with package entry point for easy installation
+
+---
+
+### 4.2 FastAPI Application (`src/llmaven/main.py`)
+
+**Responsibility**: Main REST API application with endpoints and middleware
+
+**Key Features**:
+- **CORS Middleware**: Configurable cross-origin support
+- **Exception Handlers**: Consistent error response format
+- **API Documentation**: Auto-generated OpenAPI/Swagger docs
+- **Versioned Routes**: v1 API prefix for future compatibility
+
+**Endpoints**:
+```python
+GET  /              # API information and available routes
+GET  /ping          # Health check endpoint
+GET  /docs          # Swagger UI documentation
+GET  /redoc         # ReDoc documentation
+/v1/retrieve/       # Document retrieval (see v1 endpoints)
+/v1/generate/       # Text generation (see v1 endpoints)
+```
+
+**Configuration**:
+- Environment-based via `config.py` (Pydantic Settings)
+- Supports `.env` file with `API_` prefix
+- CORS, title, description, version all configurable
+
+---
+
+### 4.3 API v1 Router (`src/llmaven/v1/router.py`)
+
+**Responsibility**: Aggregate all v1 endpoints into single router
+
+**Design Pattern**: Modular router composition
+```python
+router = APIRouter(prefix="/v1")
+router.include_router(generate.router)  # /v1/generate
+router.include_router(retrieve.router)  # /v1/retrieve
+```
+
+**Why Versioned**:
+- Allows future API versions (v2, v3) without breaking changes
+- Clear deprecation path for older endpoints
+- Client compatibility across versions
+
+---
+
+### 4.4 Retriever (`src/llmaven/core/retriever/retriever.py`)
 
 **Responsibility**: Manage vector database operations and document retrieval
 
@@ -241,7 +404,14 @@ retriever.get_vector_store(
 docs = retriever.retrieve_docs("What is dark matter?")
 ```
 
-### 4.2 Language Model (`core/generator/language_model.py`)
+**Important Notes**:
+- Storage location: `data/vector_stores/` (auto-created)
+- Temp collection cleanup: Automatically deletes `temp_collection` before recreating
+- MMR search: Balances relevance and diversity in results
+
+---
+
+### 4.5 Language Model (`src/llmaven/core/generator/language_model.py`)
 
 **Responsibility**: Load and run HuggingFace language models with quantization
 
@@ -270,7 +440,9 @@ generation_config = {
 }
 ```
 
-### 4.3 Embedding Model (`core/embeddings/embedding_model.py`)
+---
+
+### 4.6 Embedding Model (`src/llmaven/core/embeddings/embedding_model.py`)
 
 **Responsibility**: Provide text embeddings for semantic search
 
@@ -284,9 +456,97 @@ def get_embedding_model(model_name: str = None) -> HuggingFaceEmbeddings
 
 **Common Models**:
 - `sentence-transformers/all-MiniLM-L12-v2` (fast, lightweight)
-- `intfloat/multilingual-e5-large-instruct` (multilingual, high-quality)
+- `intfloat/multilingual-e5-large-instruct` (multilingual, high-quality, default)
 
-### 4.4 OpenAI Proxy (`proxy/main.py`)
+---
+
+### 4.7 Retrieval Service (`src/llmaven/services/retrieval_service.py`)
+
+**Responsibility**: Orchestrate document retrieval operations
+
+**Key Function**:
+```python
+def perform_retrieval(documents, query, existing_collection,
+                      existing_qdrant_path, embedding_model)
+```
+
+**Workflow**:
+1. Convert JSON documents to LangChain Document objects
+2. Instantiate Retriever with specified embedding model
+3. Create temporary vector store OR load existing collection
+4. Retrieve relevant documents using query
+5. Format response with metadata and content preview (500 chars)
+
+**Design Decisions**:
+- Supports both ad-hoc document indexing and pre-built collections
+- Returns status code 200 on success for consistent API responses
+- Limits page_content preview to 500 characters to reduce payload size
+
+---
+
+### 4.8 Generation Service (`src/llmaven/services/generation_service.py`)
+
+**Responsibility**: Manage language model lifecycle and text generation
+
+**Key Features**:
+- **Global Model Cache**: `MODEL_INSTANCES` dict prevents re-loading models
+- **Lazy Loading**: Models loaded on first request, cached for subsequent requests
+- **8-bit Quantization**: Default quantization for memory efficiency
+
+**Functions**:
+```python
+def get_model(generation_model)      # Retrieve or create cached model
+def generate_answer(prompt, model)   # Generate text response
+```
+
+**Model Lifecycle**:
+```python
+# First request: Load and cache
+model = LanguageModel(model_name="allenai/OLMo-2-1124-7B-Instruct")
+model.load_language_model(quantization="8bit")
+model.load_hg_pipeline()
+MODEL_INSTANCES[model_name] = model  # Cache
+
+# Subsequent requests: Use cached instance
+model = MODEL_INSTANCES[model_name]  # Fast retrieval
+```
+
+**Why Caching**:
+- Model loading can take 30-60 seconds
+- Avoids re-loading for each request
+- Reduces memory footprint with shared instances
+
+---
+
+### 4.9 Pydantic Schemas (`src/llmaven/schemas/`)
+
+**Responsibility**: Define API request/response contracts
+
+**RetrieveRequest** (`retrieve.py`):
+```python
+class RetrieveRequest(BaseModel):
+    documents: Optional[List[Dict[str, Any]]] = []
+    query: str
+    existing_collection: Optional[str] = None
+    existing_qdrant_path: Optional[str] = None
+    embedding_model: str
+```
+
+**GenerationRequest** (`generate.py`):
+```python
+class GenerationRequest(BaseModel):
+    prompt: str
+    generation_model: str
+```
+
+**Design Pattern**: Pydantic for automatic validation and serialization
+- Type checking at runtime
+- Automatic OpenAPI schema generation
+- Clear error messages for invalid requests
+
+---
+
+### 4.10 OpenAI Proxy (`proxy/main.py`)
 
 **Responsibility**: Transparent proxy for OpenAI API with logging and auth
 
@@ -318,7 +578,9 @@ Client Request
 - **Content**: JSONL with request/response pairs
 - **Storage**: Local filesystem or Azure Blob Storage
 
-### 4.5 Data Logger (`proxy/data_log.py`)
+---
+
+### 4.11 Data Logger (`proxy/data_log.py`)
 
 **Responsibility**: Unified logging interface for local and cloud storage
 
@@ -342,7 +604,9 @@ AZURE_STORAGE_ACCOUNT_KEY=key
 AZURE_STORAGE_CONTAINER=proxy-logs
 ```
 
-### 4.6 User Authentication (`proxy/auth.py`)
+---
+
+### 4.12 User Authentication (`proxy/auth.py`)
 
 **Responsibility**: API key validation with Azure Table Storage backend
 
@@ -371,21 +635,47 @@ if user_info:
     user_name = user_info["user_name"]
 ```
 
-### 4.7 Infrastructure (`infra/__main__.py`)
+---
 
-**Responsibility**: Provision Azure resources via Pulumi
+### 4.13 Streamlit Frontend (`src/llmaven/frontend/app.py`)
 
-**Resources Created**:
-1. Azure Resource Group
-2. Storage Account (Standard LRS, Hot tier)
-3. Table Storage table (`userkeys`)
-4. Blob Storage container (`proxy-logs`)
+**Responsibility**: Interactive web UI for RAG chatbot
 
-**Outputs**:
-- `resourceGroupName`
-- `storageAccountName`
-- `storageAccountKey`
-- `envVars` - Shell export commands
+**Key Features**:
+- **Chat Interface**: Message history with role-based display
+- **File Upload**: PDF document processing with PyMuPDF
+- **Real-time Retrieval**: Shows retrieved document chunks
+- **Streaming Generation**: Displays AI-generated responses
+- **Session State**: Maintains conversation history
+
+**Configuration** (`src/llmaven/frontend/config.py`):
+```python
+class FrontendConfig(BaseSettings):
+    api_base_url: str = "http://localhost:8000/v1"  # FastAPI backend
+    embedding_model: str = "sentence-transformers/all-MiniLM-L12-v2"
+    generation_model: str = "allenai/OLMo-2-1124-7B-Instruct"
+    existing_collection: str = "rubin_telescope"
+    existing_qdrant_path: str = "data/vector_stores/rubin_qdrant"
+    retrieval_k: int = 2
+```
+
+**Helper Functions**:
+- `expand_query()`: Adds domain-specific keywords (e.g., "LSST" for "Rubin")
+- `format_prompt()`: Creates astrophysics-focused prompt template
+
+**Usage Flow**:
+1. User uploads PDFs or types query
+2. Frontend calls `/v1/retrieve/` API
+3. Displays retrieved document chunks
+4. Calls `/v1/generate/` with context
+5. Shows AI-generated response
+
+**Launch Command**:
+```bash
+llmaven ui  # Starts on localhost:8501
+```
+
+---
 
 ---
 
@@ -464,39 +754,53 @@ pre-commit install
 
 ### Running the Application
 
-#### Option 1: Panel Chat UI (Primary)
+#### Option 1: LLMaven API + Streamlit UI (Recommended)
+```bash
+# Method A: Using pixi environment
+pixi shell -e llmaven
+
+# Start the FastAPI backend
+llmaven serve --env development --reload
+# Server runs at http://localhost:8000
+
+# In a new terminal, start Streamlit UI
+llmaven ui
+# UI opens at http://localhost:8501
+```
+
+```bash
+# Method B: Direct installation
+pip install -e .
+llmaven serve --env development --reload
+llmaven ui
+```
+
+#### Option 2: Panel Chat UI (Legacy)
 ```bash
 pixi run serve-panel
 # Open browser at http://localhost:5006
 ```
 
-#### Option 2: Streamlit UI
+#### Option 3: Docker Compose (Multi-Service)
 ```bash
-# First, start the FastAPI backend
-cd app
-uvicorn main:app --reload --port 8000
+# Using pixi with docker feature
+pixi shell -e llmaven
 
-# Then, start Streamlit frontend
-cd ../frontend
-streamlit run app.py
+# Start all services
+pixi run up
+# Services: API, UI, Proxy, Vector DB
+
+# View logs
+pixi run logs
+
+# Stop services
+pixi run down
 ```
 
-#### Option 3: OpenAI Proxy
-```bash
-cd proxy
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your OPENAI_API_KEY and OPENAI_BASE_URL
-
-# Run proxy
-python main.py
-# Proxy available at http://localhost:8888
-```
-
-#### Option 4: JupyterLab
+#### Option 4: JupyterLab (Development)
 ```bash
 pixi run start-jlab
+# Opens Jupyter Lab for notebook development
 ```
 
 ### Environment Configuration
@@ -507,42 +811,6 @@ pixi run start-jlab
 export EMBEDDING_MODEL_NAME="sentence-transformers/all-MiniLM-L12-v2"
 ```
 
-#### OpenAI Proxy
-```bash
-# Required
-export OPENAI_API_KEY="sk-..."
-export OPENAI_BASE_URL="https://api.openai.com"
-
-# Optional
-export PROXY_PORT=8888
-export PROXY_TIMEOUT=300
-export AUTH_ENABLED=true  # Enable authentication
-
-# Storage
-export STORAGE_TYPE=azure
-export AZURE_STORAGE_ACCOUNT_NAME=myaccount
-export AZURE_STORAGE_ACCOUNT_KEY=key
-export AZURE_STORAGE_CONTAINER=proxy-logs
-```
-
-#### Infrastructure Deployment
-```bash
-# Enter infra environment
-pixi shell -e infra
-cd infra
-
-# Login to Pulumi (local backend)
-pulumi login --local
-
-# Create/select stack
-pulumi stack init dev
-
-# Deploy
-pulumi up
-
-# Export credentials to shell
-source <(pulumi stack output envVars)
-```
 
 ### Debugging
 
@@ -745,24 +1013,43 @@ sample_documents = [
 - ✅ Document processing
 - ✅ Vector store creation
 - ⚠️ Generation API (partial)
-- ❌ Proxy authentication (missing)
-- ❌ Proxy logging (missing)
-- ❌ Infrastructure (manual testing only)
-
-**Priority**: Add proxy tests for authentication and logging modules
 
 ---
 
 ## 9. API/Interfaces
 
-### 9.1 RAG Application API
+### 9.1 LLMaven API
 
-**Base URL**: `http://localhost:8000/api`
+**Base URL**: `http://localhost:8000`
+
+#### Health Check
+
+```http
+GET /
+```
+
+**Response**:
+```json
+{
+  "message": "LLMaven API",
+  "version": "0.1.0",
+  "docs": "/docs",
+  "ping": "/ping"
+}
+```
+
+#### Ping Endpoint
+
+```http
+GET /ping
+```
+
+**Response**: `"pong"`
 
 #### Retrieve Endpoint
 
 ```http
-POST /api/retrieve/
+POST /v1/retrieve/
 Content-Type: application/json
 
 {
@@ -807,7 +1094,7 @@ Content-Type: application/json
 #### Generate Endpoint
 
 ```http
-POST /api/generate/
+POST /v1/generate/
 Content-Type: application/json
 
 {
@@ -830,57 +1117,7 @@ Content-Type: application/json
 
 **Model Caching**: Models are cached in `generation_service.py` to avoid reloading
 
-### 9.2 OpenAI Proxy API
-
-**Base URL**: `http://localhost:8888`
-
-#### Health Check
-
-```http
-GET /health
-```
-
-**Response**:
-```json
-{
-  "status": "healthy",
-  "downstream": "https://api.openai.com"
-}
-```
-
-#### Proxy OpenAI Endpoints
-
-```http
-POST /v1/chat/completions
-Authorization: Bearer sk-proxy-key-123  (if AUTH_ENABLED=true)
-Content-Type: application/json
-
-{
-  "model": "gpt-4",
-  "messages": [
-    {"role": "user", "content": "Hello!"}
-  ],
-  "stream": true
-}
-```
-
-**Behavior**:
-1. Validates API key (if `AUTH_ENABLED=true`)
-2. Logs request to storage
-3. Forwards to `OPENAI_BASE_URL`
-4. Streams response back to client
-5. Logs complete response
-
-**Supported Methods**: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`
-
-**All OpenAI v1 Endpoints**:
-- `/v1/chat/completions` (streaming supported)
-- `/v1/completions`
-- `/v1/embeddings`
-- `/v1/models`
-- Any other `/v1/*` endpoint
-
-### 9.3 Streamlit UI
+### 9.2 Streamlit UI
 
 **URL**: `http://localhost:8501` (default Streamlit port)
 
@@ -892,9 +1129,11 @@ Content-Type: application/json
 
 **Backend Dependency**: Requires `app/main.py` running on port 8000
 
-### 9.4 Panel UI
+### 9.3 Panel UI (Archived)
 
 **URL**: `http://localhost:5006`
+
+**Note**: The Panel UI is archived and located in `archive/legacy/`. It may still be functional but is no longer actively maintained.
 
 **Features**:
 - LangChain integration
@@ -903,6 +1142,8 @@ Content-Type: application/json
 - OLMo model with llama.cpp
 
 **Standalone**: Runs independently without FastAPI backend
+
+**Location**: `archive/legacy/rubin-panel-app.py`
 
 ---
 
@@ -964,130 +1205,6 @@ Content-Type: application/json
    └─→ Show: Generated Answer + Retrieved Documents
 ```
 
-### 10.2 Proxy Request Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Proxy Request Flow                             │
-└─────────────────────────────────────────────────────────────────┘
-
-1. Client Request
-   │
-   ├─→ POST https://proxy.example.com/v1/chat/completions
-   │   └─ Authorization: Bearer sk-proxy-abc123
-   │
-2. Authentication (if AUTH_ENABLED=true)
-   │
-   ├─→ Extract Bearer Token
-   ├─→ Check In-Memory Cache
-   │   ├─ (Cache Hit) → Return User Info
-   │   └─ (Cache Miss) → Query Azure Table Storage
-   │       ├─ Validate API Key
-   │       ├─ Cache User Info (5-min TTL)
-   │       └─ Return User Info or 401 Unauthorized
-   │
-3. Request Logging (Pre-Forward)
-   │
-   ├─→ Parse Request Body
-   ├─→ Extract Model Name
-   ├─→ Create Log Entry
-   │   ├─ timestamp
-   │   ├─ user_id (if authenticated)
-   │   ├─ request: {method, path, headers, body}
-   │   └─ response: {} (empty, filled later)
-   │
-4. Forward to OpenAI API
-   │
-   ├─→ Build Downstream Request
-   │   ├─ URL: OPENAI_BASE_URL + /v1/chat/completions
-   │   ├─ Headers: Authorization: Bearer OPENAI_API_KEY
-   │   └─ Body: [original request body]
-   │
-   ├─→ Send Request (httpx AsyncClient)
-   │
-5. Response Handling
-   │
-   ├─→ Detect Response Type
-   │   ├─ Streaming (text/event-stream)
-   │   │   ├─→ Stream Chunks to Client
-   │   │   ├─→ Collect Chunks for Logging
-   │   │   └─→ Log Complete Response After Stream Ends
-   │   │
-   │   └─ Non-Streaming (application/json)
-   │       ├─→ Read Full Response
-   │       ├─→ Log Request + Response
-   │       └─→ Return Response to Client
-   │
-6. Response Logging (Post-Forward)
-   │
-   ├─→ Add Response to Log Entry
-   │   ├─ status_code
-   │   ├─ headers
-   │   ├─ body
-   │   └─ streaming: true/false
-   │
-   ├─→ Determine Log Filename
-   │   ├─ With Auth: {user_id}_{model}_{YYYYMMDD}.jsonl
-   │   └─ Without Auth: {model}_{YYYYMMDD}.jsonl
-   │
-   └─→ Append to Storage
-       ├─ Local: logs/{filename}
-       └─ Azure: az://proxy-logs/{filename}
-```
-
-### 10.3 Infrastructure Deployment Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              Infrastructure Deployment Flow                      │
-└─────────────────────────────────────────────────────────────────┘
-
-1. Developer Runs `pulumi up`
-   │
-2. Pulumi Reads Configuration
-   │
-   ├─→ Pulumi.dev.yaml (stack config)
-   ├─→ infra/__main__.py (program)
-   └─→ Environment Variables
-   │
-3. Azure Authentication
-   │
-   ├─→ `az login` (Azure CLI)
-   └─→ Use Default Credentials
-   │
-4. Resource Creation (Declarative)
-   │
-   ├─→ Create Resource Group
-   │   └─ Name: {storageAccountName}-rg
-   │   └─ Location: eastus2
-   │
-   ├─→ Create Storage Account
-   │   ├─ SKU: Standard_LRS
-   │   ├─ Kind: StorageV2
-   │   ├─ Access Tier: Hot
-   │   └─ HTTPS Only: true
-   │
-   ├─→ Create Table Storage Table
-   │   └─ Name: userkeys
-   │
-   └─→ Create Blob Container
-       └─ Name: proxy-logs
-   │
-5. Output Credentials
-   │
-   ├─→ Export Storage Account Name
-   ├─→ Export Storage Account Key (secret)
-   └─→ Export Environment Variables
-       └─ `source <(pulumi stack output envVars)`
-   │
-6. Developer Configures Proxy
-   │
-   ├─→ Set Environment Variables in .env
-   │   ├─ AZURE_STORAGE_ACCOUNT_NAME
-   │   └─ AZURE_STORAGE_ACCOUNT_KEY
-   │
-   └─→ Restart Proxy Service
-```
 
 ---
 
@@ -1097,7 +1214,10 @@ Content-Type: application/json
 
 | File | Purpose | Critical Fields |
 |------|---------|----------------|
+| `pyproject.toml` | Python package metadata | `dependencies`, `scripts` (llmaven CLI), `version` |
 | `pixi.toml` | Package manager config | `dependencies`, `pypi-dependencies`, `environments`, `tasks` |
+| `src/llmaven/config.py` | API configuration | `api_title`, `api_version`, `cors_origins` |
+| `src/llmaven/frontend/config.py` | Frontend configuration | `api_base_url`, `embedding_model`, `generation_model` |
 | `.env` (proxy) | Proxy runtime config | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `STORAGE_TYPE`, `AUTH_ENABLED` |
 | `.flake8` | Linting rules | `max-line-length = 120` |
 | `.pre-commit-config.yaml` | Git hooks | Code quality checks |
@@ -1107,30 +1227,36 @@ Content-Type: application/json
 
 | File | Command | Purpose |
 |------|---------|---------|
-| `legacy/rubin-panel-app.py` | `pixi run serve-panel` | Primary interactive chat demo |
-| `app/main.py` | `uvicorn app.main:app` | FastAPI RAG backend |
-| `frontend/app.py` | `streamlit run app.py` | Streamlit UI |
-| `proxy/main.py` | `python main.py` or `uvicorn main:app` | OpenAI proxy |
-| `infra/__main__.py` | `pulumi up` | Infrastructure deployment |
+| `src/llmaven/cli.py` | `llmaven serve` | FastAPI API server (CLI) |
+| `src/llmaven/cli.py` | `llmaven ui` | Streamlit frontend (CLI) |
+| `src/llmaven/main.py` | `uvicorn llmaven.main:app` | FastAPI app (direct) |
+| `src/llmaven/frontend/app.py` | `streamlit run app.py` | Streamlit UI (direct) |
+| `legacy/rubin-panel-app.py` | `pixi run serve-panel` | Legacy Panel chat UI |
+| `archive/proxy/main.py` | `python main.py` or `uvicorn main:app` | OpenAI proxy (archived) |
+| `archive/infra/__main__.py` | `pulumi up` | Infrastructure deployment (archived) |
 
 ### Key Library Files
 
 | File | Purpose |
 |------|---------|
-| `core/retriever/retriever.py` | Vector DB + retrieval logic |
-| `core/generator/language_model.py` | HuggingFace LLM wrapper |
-| `core/embeddings/embedding_model.py` | Embedding model factory |
-| `app/services/retrieval_service.py` | Retrieval orchestration |
-| `app/services/generation_service.py` | Generation + model caching |
-| `proxy/auth.py` | API key authentication |
-| `proxy/data_log.py` | Request/response logging |
+| `src/llmaven/core/retriever/retriever.py` | Vector DB + retrieval logic |
+| `src/llmaven/core/generator/language_model.py` | HuggingFace LLM wrapper |
+| `src/llmaven/core/embeddings/embedding_model.py` | Embedding model factory |
+| `src/llmaven/services/retrieval_service.py` | Retrieval orchestration |
+| `src/llmaven/services/generation_service.py` | Generation + model caching |
+| `src/llmaven/schemas/retrieve.py` | RetrieveRequest schema |
+| `src/llmaven/schemas/generate.py` | GenerationRequest schema |
+| `src/llmaven/v1/endpoints/retrieve.py` | Retrieve endpoint handler |
+| `src/llmaven/v1/endpoints/generate.py` | Generate endpoint handler |
+| `archive/proxy/auth.py` | API key authentication (archived) |
+| `archive/proxy/data_log.py` | Request/response logging (archived) |
 
 ### Docker & CI/CD
 
 | File | Purpose |
 |------|---------|
-| `proxy/Dockerfile` | Multi-stage Alpine container |
-| `.github/workflows/proxy-container.yml` | GitHub Actions: build/push proxy image |
+| `archive/proxy/Dockerfile` | Multi-stage Alpine container (archived) |
+| `.github/workflows/proxy-container.yml` | GitHub Actions: build/push proxy image (may be outdated) |
 | `.devcontainer/Dockerfile` | VS Code dev container |
 
 ---
@@ -1212,80 +1338,7 @@ EMBEDDING_MODEL = "intfloat/multilingual-e5-large-instruct"
 
 **Important**: Changing embedding models requires re-indexing the vector database
 
-### 12.3 Add a New User to Proxy
-
-**Scenario**: Create API key for user `alice@example.com`
-
-**Option 1: Using Azure Portal**
-1. Navigate to Storage Account → Tables → `userkeys`
-2. Add Entity:
-   - PartitionKey: `users`
-   - RowKey: `alice-uuid-123`
-   - api_key: `sk-proxy-alice-abc123`
-   - user_name: `Alice Smith`
-   - created_at: `2025-01-15T10:00:00Z`
-
-**Option 2: Using `infra/users.py` (if implemented)**
-```bash
-pixi shell -e infra
-python infra/users.py add --user-id alice-uuid-123 --name "Alice Smith"
-# Outputs: sk-proxy-alice-abc123
-```
-
-**Verification**:
-```bash
-curl -H "Authorization: Bearer sk-proxy-alice-abc123" \
-     http://localhost:8888/v1/models
-```
-
-### 12.4 Deploy Proxy to Production
-
-**Steps**:
-
-1. **Build Docker Image**:
-```bash
-cd proxy
-docker build -t llmaven-proxy:latest .
-```
-
-2. **Test Locally**:
-```bash
-docker run -p 8888:8888 \
-  -e OPENAI_API_KEY=sk-... \
-  -e OPENAI_BASE_URL=https://api.openai.com \
-  -e AUTH_ENABLED=true \
-  -e STORAGE_TYPE=azure \
-  -e AZURE_STORAGE_ACCOUNT_NAME=myaccount \
-  -e AZURE_STORAGE_ACCOUNT_KEY=key \
-  llmaven-proxy:latest
-```
-
-3. **Push to Registry** (automatic via GitHub Actions):
-```bash
-git add proxy/
-git commit -m "Update proxy configuration"
-git push origin main
-# GitHub Actions builds and pushes to ghcr.io
-```
-
-4. **Deploy to Azure Container Instances** (manual):
-```bash
-az container create \
-  --resource-group llmaven-rg \
-  --name llmaven-proxy \
-  --image ghcr.io/uw-ssec/llmaven/proxy:latest \
-  --ports 8888 \
-  --environment-variables \
-    OPENAI_API_KEY=sk-... \
-    OPENAI_BASE_URL=https://api.openai.com \
-    AUTH_ENABLED=true \
-    STORAGE_TYPE=azure \
-    AZURE_STORAGE_ACCOUNT_NAME=myaccount \
-  --secure-environment-variables \
-    AZURE_STORAGE_ACCOUNT_KEY=key
-```
-
-### 12.5 Add New Vector Database Collection
+### 12.3 Add New Vector Database Collection
 
 **Scenario**: Index arXiv papers on climate science
 
@@ -1336,7 +1389,7 @@ EXISTING_QDRANT_PATH = "data/vector_stores/arxiv_climate_science"
 pixi run serve-panel
 ```
 
-### 12.6 Debug Slow Retrieval
+### 12.4 Debug Slow Retrieval
 
 **Symptoms**: Vector search takes >5 seconds
 
@@ -1468,53 +1521,7 @@ olmo = LlamaCpp(
 
 ---
 
-### 13.3 Proxy Issues
-
-**Problem**: 401 Unauthorized despite valid API key
-
-**Cause**: Cache not refreshed, or table schema incorrect
-
-**Debug**:
-```python
-# Check cache
-from proxy.auth import UserKeyStore
-store = UserKeyStore()
-print(store.key_cache)  # Should contain your API key
-
-# Force refresh
-store._refresh_cache()
-```
-
----
-
-**Problem**: Logs not appearing in Azure Blob Storage
-
-**Cause**: Credentials or container name incorrect
-
-**Debug**:
-```python
-from proxy.data_log import DataLogger
-
-logger = DataLogger()
-print(f"Storage Type: {logger.storage_type}")
-print(f"Base Path: {logger.base_path}")
-
-# Test write
-test_entry = {"timestamp": "2025-01-15T10:00:00", "test": True}
-logger.log_entry(test_entry)
-```
-
----
-
-**Problem**: Streaming responses not working
-
-**Cause**: Content-Type header not detected as `text/event-stream`
-
-**Debug**: Check `proxy/main.py` lines 177-181. Ensure OpenAI returns correct headers.
-
----
-
-### 13.4 Dependency Conflicts
+### 13.3 Dependency Conflicts
 
 **Problem**: `pixi install` fails with solver error
 
@@ -1527,28 +1534,24 @@ logger.log_entry(test_entry)
 
 ---
 
-**Problem**: Import errors for Azure packages
+**Problem**: Import errors for packages
 
 **Cause**: Using wrong pixi environment
 
 **Solution**:
 ```bash
-# For proxy
-pixi shell -e proxy
-python proxy/main.py
-
-# For infrastructure
-pixi shell -e infra
-cd infra && pulumi up
-
 # For main app
-pixi shell  # Default environment
-python legacy/rubin-panel-app.py
+pixi shell -e llmaven
+llmaven serve
+
+# For frontend
+pixi shell -e llmaven
+llmaven ui
 ```
 
 ---
 
-### 13.5 Performance Issues
+### 13.4 Performance Issues
 
 **Problem**: Panel UI is slow to respond
 
@@ -1575,7 +1578,7 @@ uvicorn app.main:app --timeout-keep-alive 300
 
 ---
 
-### 13.6 Platform-Specific Issues
+### 13.5 Platform-Specific Issues
 
 **macOS ARM64**:
 - llama-cpp-python may require manual build with Metal support
@@ -1587,7 +1590,7 @@ uvicorn app.main:app --timeout-keep-alive 300
 
 ---
 
-### 13.7 Configuration Mistakes
+### 13.6 Configuration Mistakes
 
 **Problem**: `.env` file not loaded
 
@@ -1597,21 +1600,7 @@ uvicorn app.main:app --timeout-keep-alive 300
 ```bash
 # Always run from project root
 cd /path/to/llmaven
-cd proxy
-python main.py  # Loads .env from current directory
-```
-
----
-
-**Problem**: `OPENAI_API_KEY` not set in proxy
-
-**Cause**: Forgot to copy `.env.example` to `.env`
-
-**Solution**:
-```bash
-cd proxy
-cp .env.example .env
-# Edit .env with your actual key
+llmaven serve
 ```
 
 ---
@@ -1709,24 +1698,11 @@ Now raises ValueError with actionable error message.
 pixi add <package>
 
 # Add to specific environment
-pixi add --feature proxy <package>
+pixi add --feature llmaven <package>
 
 # Add PyPI package
 pixi add --pypi <package>
 ```
-
-**Proxy Requirements** (`proxy/requirements.txt`):
-```bash
-# Add package
-echo "new-package>=1.0.0" >> proxy/requirements.txt
-
-# Rebuild Docker image
-docker build -t llmaven-proxy:latest proxy/
-```
-
-**Rationale for Dual Management**:
-- `pixi.toml`: Development environment (all features)
-- `proxy/requirements.txt`: Production proxy (minimal dependencies)
 
 ### 14.5 Documentation Standards
 
@@ -1853,13 +1829,33 @@ class RetrieveRequest(BaseModel):
 ## Appendix B: Quick Reference Commands
 
 ```bash
-# Development
-pixi install                          # Install dependencies
-pixi run serve-panel                  # Run Panel UI
+# Installation
+pixi install                          # Install all dependencies
+pixi shell -e llmaven                 # Enter llmaven environment
+pip install -e .                      # Install package (editable mode)
+
+# Development - New API
+llmaven serve --env development --reload  # Start API server with auto-reload
+llmaven ui                            # Start Streamlit UI
+llmaven version                       # Show version
+
+# Development - Legacy
+pixi run serve-panel                  # Run Panel UI (legacy)
 pixi run start-jlab                   # Start JupyterLab
-pixi shell                            # Enter dev environment
+
+# Docker
+pixi shell -e llmaven
+pixi run up                           # Start all services
+pixi run down                         # Stop all services
+pixi run logs                         # View logs
+pixi run status                       # Check service status
+
+# Environment Management
+pixi shell                            # Enter default environment
+pixi shell -e llmaven                 # Enter llmaven environment
 pixi shell -e proxy                   # Enter proxy environment
 pixi shell -e infra                   # Enter infrastructure environment
+pixi shell -e frontend                # Enter frontend environment
 
 # Testing
 pytest                                # Run all tests
@@ -1870,17 +1866,6 @@ pytest --cov=app --cov=core           # Run with coverage
 pre-commit run --all-files            # Run all pre-commit hooks
 flake8 app/ core/ proxy/              # Lint Python code
 
-# Proxy
-cd proxy && python main.py            # Run proxy locally
-docker build -t llmaven-proxy .       # Build proxy container
-
-# Infrastructure
-cd infra                              # Navigate to infra
-pulumi login --local                  # Login to Pulumi (local)
-pulumi stack init dev                 # Create stack
-pulumi up                             # Deploy infrastructure
-pulumi destroy                        # Destroy resources
-source <(pulumi stack output envVars) # Export credentials
 
 # Git
 git checkout -b feature/my-feature    # Create feature branch
@@ -1905,13 +1890,6 @@ Problem: Application not working
 │  ├─ Yes → Check GPU memory, try 4-bit quantization
 │  └─ No → Continue
 │
-├─ Is it a proxy issue?
-│  ├─ Yes
-│  │  ├─ 401 Unauthorized? → Check API keys, refresh cache
-│  │  ├─ Logs not appearing? → Verify Azure credentials
-│  │  └─ Streaming not working? → Check Content-Type headers
-│  └─ No → Continue
-│
 ├─ Is it a dependency issue?
 │  ├─ Yes → Check pixi environment (pixi shell -e <env>)
 │  └─ No → Continue
@@ -1927,80 +1905,22 @@ Problem: Application not working
 
 ### RAG Pipeline
 
-```
-User Query
-    ↓
-┌───────────────────────────────────────────────┐
-│          Embedding Model                      │
-│  (sentence-transformers/all-MiniLM-L12-v2)   │
-└───────────────────────────────────────────────┘
-    ↓
-┌───────────────────────────────────────────────┐
-│         Vector Database (Qdrant)              │
-│                                               │
-│  Collection: arxiv_astro-ph_abstracts         │
-│  Search: MMR (k=2)                            │
-└───────────────────────────────────────────────┘
-    ↓
-Retrieved Documents (Top 2)
-    ↓
-┌───────────────────────────────────────────────┐
-│         Prompt Template                       │
-│                                               │
-│  "You are an astrophysics expert...          │
-│   Context: [retrieved docs]                  │
-│   Question: [user query]"                    │
-└───────────────────────────────────────────────┘
-    ↓
-┌───────────────────────────────────────────────┐
-│    Language Model (OLMo-7B-Instruct)         │
-│    Quantization: 8-bit                        │
-│    Max Tokens: 512                            │
-└───────────────────────────────────────────────┘
-    ↓
-Generated Answer
-```
+```mermaid
+flowchart TD
+    A[User Query] --> B[Embedding Model<br/>sentence-transformers/all-MiniLM-L12-v2]
+    B --> C[Vector Database - Qdrant<br/>Collection: arxiv_astro-ph_abstracts<br/>Search: MMR k=2]
+    C --> D[Retrieved Documents<br/>Top 2]
+    D --> E[Prompt Template<br/>You are an astrophysics expert...<br/>Context: retrieved docs<br/>Question: user query]
+    E --> F[Language Model<br/>OLMo-7B-Instruct<br/>Quantization: 8-bit<br/>Max Tokens: 512]
+    F --> G[Generated Answer]
 
-### Proxy Architecture
-
-```
-┌──────────────┐
-│    Client    │
-└──────┬───────┘
-       │ POST /v1/chat/completions
-       │ Authorization: Bearer sk-proxy-key
-       ↓
-┌──────────────────────────────────────────┐
-│          FastAPI Proxy                   │
-│                                          │
-│  ┌────────────────────────────────────┐ │
-│  │  Authentication Middleware         │ │
-│  │  (Azure Table Storage + Cache)     │ │
-│  └────────────────────────────────────┘ │
-│                 ↓                        │
-│  ┌────────────────────────────────────┐ │
-│  │  Request Logger                    │ │
-│  │  (Create log entry)                │ │
-│  └────────────────────────────────────┘ │
-│                 ↓                        │
-│  ┌────────────────────────────────────┐ │
-│  │  Forward to OpenAI API             │ │
-│  │  (httpx AsyncClient)               │ │
-│  └────────────────────────────────────┘ │
-│                 ↓                        │
-│  ┌────────────────────────────────────┐ │
-│  │  Stream Response to Client         │ │
-│  │  (Collect chunks for logging)      │ │
-│  └────────────────────────────────────┘ │
-│                 ↓                        │
-│  ┌────────────────────────────────────┐ │
-│  │  Response Logger                   │ │
-│  │  (Append to storage)               │ │
-│  └────────────────────────────────────┘ │
-└──────────────────────────────────────────┘
-       │
-       ├─→ Azure Blob Storage (logs)
-       └─→ Azure Table Storage (user keys)
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style D fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style E fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style F fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style G fill:#e0f2f1,stroke:#00897b,stroke-width:2px
 ```
 
 ---
@@ -2013,26 +1933,6 @@ Generated Answer
 |----------|---------|-------------|
 | `EMBEDDING_MODEL_NAME` | `intfloat/multilingual-e5-large-instruct` | HuggingFace embedding model |
 
-### Proxy Service
-
-| Variable | Default | Required | Description |
-|----------|---------|----------|-------------|
-| `OPENAI_API_KEY` | - | Yes | OpenAI API key |
-| `OPENAI_BASE_URL` | - | Yes | OpenAI API base URL |
-| `PROXY_PORT` | 8888 | No | Proxy server port |
-| `PROXY_TIMEOUT` | 300 | No | Request timeout (seconds) |
-| `AUTH_ENABLED` | true | No | Enable API key auth |
-| `STORAGE_TYPE` | local | No | `local` or `azure` |
-| `LOCAL_LOG_DIR` | logs | No | Local log directory |
-| `AZURE_STORAGE_ACCOUNT_NAME` | - | If `STORAGE_TYPE=azure` | Azure account name |
-| `AZURE_STORAGE_ACCOUNT_KEY` | - | If `STORAGE_TYPE=azure` | Azure account key |
-| `AZURE_STORAGE_CONTAINER` | proxy-logs | No | Azure blob container |
-
-### Infrastructure
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| Configured via Pulumi stack files (`Pulumi.dev.yaml`) | | See `infra/README.md` |
 
 ---
 
