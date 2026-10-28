@@ -34,5 +34,5 @@ MinIO console <http://localhost:9001>, Qdrant <http://localhost:6333/dashboard>.
 
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — the human contributor workflow
 - [repository-map.md](repository-map.md) — what lives where
-- [`agent_docs/infrastructure.md`](../../agent_docs/infrastructure.md) — Azure
-  deployment (needs `az login` and a `llmaven-config.yaml`)
+- [infrastructure.md](infrastructure.md) — Azure deployment (needs `az login`
+  and a `llmaven-config.yaml`)

@@ -19,10 +19,8 @@ A description of the issue to create.
 
    - **Type**: `feat`, `fix`, `refactor`, `docs`, `chore`, `perf`, `ci`,
      `build`, `test`
-   - **Scope**: the area of the codebase affected — the scopes in
-     [`agent_docs/commit_messages.md`](../../../agent_docs/commit_messages.md)
-     (`api`, `ui`, `infra`, `core`, `cli`, `agentic`), or `docker`, `data`,
-     `knowledge`, `docs`, `ci`, `deps`
+   - **Scope**: the area of the codebase affected — one of the scopes in
+     [pre-commit-and-quality.md](../../rules/pre-commit-and-quality.md#commit-messages)
    - **Title**: conventional commit format:
      `type(scope): short imperative description`
 

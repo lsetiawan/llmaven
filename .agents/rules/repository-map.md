@@ -19,8 +19,7 @@ infrastructure that can be installed on cloud and HPC systems:
   [uw-ssec/rse-plugins](https://github.com/uw-ssec/rse-plugins), not here.
 
 The `llmaven` Python package also carries a FastAPI service, a Streamlit UI, and
-an agentic RAG system (see
-[`agent_docs/agentic_rag.md`](../../agent_docs/agentic_rag.md)).
+an agentic RAG system (see [agentic-rag.md](agentic-rag.md)).
 
 **Repository Stats:**
 
@@ -35,7 +34,7 @@ an agentic RAG system (see
 ```
 .
 ├── .agents/
-│   ├── rules/                   # On-demand rules referenced by AGENTS.md
+│   ├── rules/                   # On-demand rules and domain guides referenced by AGENTS.md
 │   └── skills/                  # User-invocable skills (/commit, /verify, ...)
 ├── .claude/
 │   └── skills -> ../.agents/skills  # Symlink so Claude Code discovers the skills
@@ -44,7 +43,6 @@ an agentic RAG system (see
 │   ├── copilot-instructions.md -> ../AGENTS.md  # Copilot reads the same entry point
 │   ├── pull_request_template.md # PR template (includes AI disclosure)
 │   └── workflows/               # ci.yml (tests + pre-commit), container builds, zizmor
-├── agent_docs/                  # Domain guides for agents (endpoints, infra, RAG, ...)
 ├── archive/                     # Legacy code — DO NOT MODIFY
 ├── docker/
 │   ├── docker-compose.yml       # Local stack mirroring the cloud architecture
@@ -90,13 +88,13 @@ runs `docker-compose down -v` and **deletes the stack's data** — ask first.
 
 - `llmaven infra init|validate|deploy|status|destroy` drives Pulumi against
   Azure. Configuration lives in `llmaven-config*.yaml`, which is gitignored and
-  holds secrets. See
-  [`agent_docs/infrastructure.md`](../../agent_docs/infrastructure.md).
+  holds secrets. See [infrastructure.md](infrastructure.md).
 - `.github/workflows/build-services.yml` builds the mlflow, litellm and backup
   images and pushes them to GHCR on pushes to `main` that touch `docker/**` or
   `scripts/backup_postgres.py`, and on releases.
-- `deploy` and `destroy` change real cloud resources. Run `--preview` only,
-  unless a human has explicitly approved the real run.
+- `deploy` and `destroy` change real cloud resources. Even `deploy --preview`
+  can create the resource group and Pulumi state storage first, so get explicit
+  human approval before running any of them.
 - Real environment configs (Azure dev/prod, UW HYAK) live in the private
   `uw-ssec/llmaven-deploy` repository, not here.
 

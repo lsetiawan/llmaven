@@ -60,5 +60,52 @@ was skipped and why rather than reporting `verify` as passed.
 **Solution:** `docker/docker-compose.yml` reads `docker/.env`, which is
 gitignored. Create it from `docker/.env.example`;
 `docker compose -f docker/docker-compose.yml config` shows the resolved file and
-any unset variables. For Qdrant, model, and API issues see
-[`agent_docs/troubleshooting.md`](../../agent_docs/troubleshooting.md).
+any unset variables.
+
+## Issue: Qdrant reports `Collection not found`
+
+**Cause:** a wrong collection name or Qdrant location, or a collection that was
+never created. The agentic system defaults to `agentic-rag` at
+`http://localhost:6333` (`AGENTIC_COLLECTION_NAME`, `AGENTIC_QDRANT_URL`).
+
+**Diagnosis:** list the collections that actually exist:
+
+```python
+from qdrant_client import QdrantClient
+
+client = QdrantClient(url="http://localhost:6333")  # or path="..." for local storage
+print([c.name for c in client.get_collections().collections])
+```
+
+Then fix the name or location, or ingest first
+(`pixi run -e llmaven llmaven agentic ingest <dir>`).
+
+## Issue: `CUDA out of memory` loading a model
+
+**Solution:** load the legacy generator with quantization,
+`LanguageModel.load_language_model(quantization="4bit")` (or `"8bit"`). Failing
+that, use a smaller model or run on CPU. The generation service loads models
+with `"8bit"`.
+
+## Issue: API server won't start
+
+**Diagnosis:** start it in development mode and read the traceback:
+
+```bash
+pixi run -e llmaven api-server --env development --reload
+```
+
+Check for port 8000 already in use (`lsof -i :8000`), missing environment
+variables, and import errors.
+
+## Issue: Packages missing or at the wrong version
+
+**Solution:** reinstall the environment and check that the package imports:
+
+```bash
+pixi install -e llmaven
+pixi run -e llmaven llmaven version
+```
+
+If that doesn't fix it, ask the user before running `pixi clean`, which deletes
+`.pixi/`.

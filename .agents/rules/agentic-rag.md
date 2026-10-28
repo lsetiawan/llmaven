@@ -1,5 +1,11 @@
 # Agentic RAG System
 
+**Load when:** working on `src/llmaven/agentic/`, the `/v1/agentic/*` endpoints,
+or the `llmaven agentic` CLI.
+
+This system is slated to move to `uw-ssec/llmoxie-rag` (#175, #180). Check those
+issues before starting large changes here.
+
 The Agentic RAG system is a next-generation retrieval and question-answering
 system that combines hybrid search (Dense + Sparse + ColBERT) with intelligent
 agent-based answer generation. It provides superior retrieval accuracy compared
@@ -30,7 +36,8 @@ The agentic RAG system consists of four main components:
 4. **RAG Agent** (`src/llmaven/agentic/agent/rag_agent.py`)
    - Pydantic-AI based agent with structured output
    - Citation support with relevance scores
-   - Multi-provider LLM support (OpenAI, Ollama, HuggingFace)
+   - Multi-provider LLM support (OpenAI, Ollama, LiteLLM, Azure OpenAI,
+     HuggingFace)
    - Message history for multi-turn conversations
 
 ## Usage Examples
@@ -80,6 +87,9 @@ llmaven agentic chat --collection my-docs
 
 # Use different LLM provider
 llmaven agentic chat --provider ollama --model llama2
+
+# Route through the local LiteLLM proxy
+llmaven agentic chat --provider litellm --litellm-base http://localhost:4000 --model gpt-4o-mini
 ```
 
 ### Python API Usage
@@ -126,9 +136,20 @@ AGENTIC_COLBERT_MODEL=colbert-ir/colbertv2.0
 **LLM Configuration:**
 
 ```bash
-AGENTIC_LLM_PROVIDER=openai  # Options: openai, ollama, huggingface
+AGENTIC_LLM_PROVIDER=openai  # Options: openai, ollama, litellm, azure, huggingface
 AGENTIC_LLM_MODEL=gpt-4o-mini
 AGENTIC_HUGGINGFACE_MODEL=optional-local-model
+
+# litellm provider
+AGENTIC_LITELLM_API_BASE=http://localhost:4000
+AGENTIC_LITELLM_API_KEY=your-key
+AGENTIC_LITELLM_MODEL_PREFIX=openai/  # Optional
+
+# azure provider
+AGENTIC_AZURE_ENDPOINT=https://<resource>.openai.azure.com
+AGENTIC_AZURE_API_KEY=your-key
+AGENTIC_AZURE_DEPLOYMENT_NAME=gpt-4o
+AGENTIC_AZURE_API_VERSION=2024-10-21
 ```
 
 **Search Configuration:**
