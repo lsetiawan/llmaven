@@ -106,8 +106,8 @@ runs `docker-compose down -v` and **deletes the stack's data** — ask first.
 to `main`, in the `llmaven` environment on Ubuntu:
 
 - pytest in three steps: `tests/` minus `agentic/` and `v1/`, then
-  `tests/agentic/` minus `test_cli.py`, then `tests/v1/`. The first step ends
-  with `|| echo`, so **core test failures do not fail CI**, and
-  `tests/agentic/test_cli.py` never runs there. A green CI run is therefore not
-  a full-suite pass — run `pixi run -e llmaven test` and report it.
-- `pre-commit run --all-files`.
+  `tests/agentic/` minus `test_cli.py`, then `tests/v1/`.
+  `tests/agentic/test_cli.py` never runs there, so a green CI run is not a
+  full-suite pass — run `pixi run -e llmaven test` and report it.
+- `pre-commit-all`.
+- A summary job that fails if either job above did not succeed.

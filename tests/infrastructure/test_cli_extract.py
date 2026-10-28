@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import click
 import pytest
 from click.testing import Result
 from typer.testing import CliRunner
@@ -86,7 +87,7 @@ class TestInfraExtract:
         )
 
         assert result.exit_code == 2
-        assert "Invalid value for '--out'" in result.output
+        assert "Invalid value for '--out'" in click.unstyle(result.output)
 
     def test_mkdir_failure_exits(self, runner: CliRunner, tmp_path: Path):
         base_dir = tmp_path / "no-write"
@@ -236,12 +237,14 @@ class TestInfraExtract:
         "llmaven.cli._get_llmaven_secrets",
         return_value={"litellm-master-key": "mk", "litellm-base-url": "http://litellm"},
     )
+    @patch("llmaven.cli.sleep")
     @patch("zipfile.ZipFile")
     @patch("httpx.Client")
     def test_http_error_skips_day_and_continues(
         self,
         mock_httpx_client_cls,
         mock_zip_cls,
+        mock_sleep,
         _mock_secrets,
         runner: CliRunner,
         tmp_path: Path,
@@ -252,7 +255,7 @@ class TestInfraExtract:
 
         bad_resp = Mock()
         bad_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "boom", request=Mock(), response=Mock()
+            "boom", request=Mock(), response=Mock(status_code=503)
         )
         good_resp = Mock()
         good_resp.raise_for_status.return_value = None
@@ -281,6 +284,39 @@ class TestInfraExtract:
         name0, _ = zipf.writestr.call_args_list[0][0]
         assert name0 == "litellm_spend_logs_2026-01-02.jsonl"
         assert "1 total records" in result.output
+        mock_sleep.assert_called_once_with(60)
+
+    @patch(
+        "llmaven.cli._get_llmaven_secrets",
+        return_value={"litellm-master-key": "mk", "litellm-base-url": "http://litellm"},
+    )
+    @patch("zipfile.ZipFile")
+    @patch("httpx.Client")
+    def test_transport_error_exits(
+        self,
+        mock_httpx_client_cls,
+        mock_zip_cls,
+        _mock_secrets,
+        runner: CliRunner,
+        tmp_path: Path,
+    ):
+        import httpx
+
+        http_client = Mock()
+        http_client.get.side_effect = httpx.ConnectError("refused")
+        mock_httpx_client_cls.return_value.__enter__.return_value = http_client
+        mock_zip_cls.return_value.__enter__.return_value = Mock()
+
+        result = invoke_extract(
+            runner,
+            from_date="2026-01-01",
+            to_date="2026-01-01",
+            source=None,
+            output_file=tmp_path / "out.zip",
+        )
+
+        assert result.exit_code == 1
+        assert "LiteLLM /spend/logs failed for 2026-01-01" in result.output
 
     @patch(
         "llmaven.cli._get_llmaven_secrets",

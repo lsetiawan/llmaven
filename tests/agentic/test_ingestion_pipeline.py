@@ -13,6 +13,20 @@ from llmaven.agentic.ingestion.pipeline import IngestionPipeline
 from llmaven.agentic.exceptions import IngestionError, EmbeddingError
 
 
+@pytest.fixture
+def mock_converter():
+    """Stub `docling.document_converter` so tests don't import real docling.
+
+    `patch("docling.document_converter.DocumentConverter")` has to import the
+    real module, and that import fails in the pinned environment
+    (deepsearch-glm requires deepsearch-toolkit, which isn't installed).
+    """
+    converter_cls = MagicMock()
+    module = MagicMock(DocumentConverter=converter_cls)
+    with patch.dict("sys.modules", {"docling.document_converter": module}):
+        yield converter_cls
+
+
 class TestIngestionPipelineInitialization:
     """Test IngestionPipeline initialization."""
 
@@ -137,7 +151,6 @@ class TestIngestionPipelineParse:
             assert "text" in parsed
             assert parsed["file_path"] == "test.md"
 
-    @patch("docling.document_converter.DocumentConverter")
     def test_parse_pdf_with_docling(self, mock_converter):
         """Test parsing PDF with docling."""
         mock_qdrant_manager = MagicMock()
@@ -167,7 +180,6 @@ class TestIngestionPipelineParse:
             assert "text" in parsed
             assert parsed["file_path"] == "test.pdf"
 
-    @patch("docling.document_converter.DocumentConverter")
     def test_parse_fallback_on_docling_error(self, mock_converter):
         """Test that parsing falls back to PyMuPDF if docling fails."""
         mock_qdrant_manager = MagicMock()
@@ -229,7 +241,6 @@ class TestIngestionPipelineChunk:
             assert all("text" in chunk for chunk in chunks)
             assert all("file_path" in chunk for chunk in chunks)
 
-    @patch("docling.document_converter.DocumentConverter")
     def test_chunk_with_heading_hierarchy(self, mock_converter):
         """Test chunking preserves heading hierarchy."""
         mock_qdrant_manager = MagicMock()
