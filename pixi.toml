@@ -85,6 +85,8 @@ llmaven = { features = [
     "llmaven",
     "pulumi",
     "pre-commit",
+    "gh-cli",
+    "okf",
 ], no-default-feature = true }
 frontend = { features = ["frontend"], no-default-feature = true }
 infra = { features = [
@@ -115,8 +117,14 @@ python-dotenv = ">=1.1.1,<2"
 pyarrow = ">=19.0.0,<20"
 
 [feature.llmaven.tasks]
-api-server = { cmd = "llmaven serve" }
-ui = { cmd = "llmaven ui" }
+api-server = { cmd = "llmaven server serve" }
+ui = { cmd = "llmaven server ui" }
+test = { cmd = "pytest tests/", description = "Run the full test suite (needs Docker for testcontainers)" }
+verify = { description = "Run every check that gates a commit or PR", depends-on = [
+    "pre-commit-all",
+    "okf-validate",
+    "test",
+] }
 
 [feature.pulumi.tasks.install-pulumi]
 cmd = "curl -fsSL https://get.pulumi.com | bash -s -- --install-root $CONDA_PREFIX"
@@ -157,6 +165,24 @@ clean = { cmd = "docker-compose down -v", cwd = "docker" }
 
 [feature.pre-commit.dependencies]
 pre-commit = ">=3.4.0,<4"
+
+[feature.pre-commit.tasks]
+pre-commit-install = { cmd = "pre-commit install", description = "Install pre-commit hooks in the git repository" }
+pre-commit-all = { cmd = "pre-commit run --all-files", description = "Run pre-commit checks on all files" }
+pre-commit = { cmd = "pre-commit run", description = "Run pre-commit checks on staged files" }
+
+# === Agent tooling: GitHub CLI and OKF agent memory ===
+
+[feature.gh-cli.dependencies]
+gh = ">=2.0.0"
+
+[feature.okf.dependencies]
+okf-agent-memory = ">=0.7.1,<0.8"
+
+[feature.okf.tasks]
+okf-validate = { cmd = "okf validate --strict --drift", description = "Validate the OKF knowledge bundle in knowledge/" }
+
+# === End agent tooling ===
 
 # === Backup dependencies and tasks ===
 
