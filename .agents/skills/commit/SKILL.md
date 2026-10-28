@@ -18,11 +18,9 @@ Commit staged and unstaged changes to the current branch.
 3. Analyze ALL changes (staged + unstaged) and determine:
    - The conventional commit type: `feat`, `fix`, `refactor`, `docs`, `chore`,
      `style`, `test`, `perf`, `ci`, `build`
-   - An optional scope in parentheses based on what area changed — use the
+   - An optional scope in parentheses based on what area changed — one of the
      scopes in
-     [`agent_docs/commit_messages.md`](../../../agent_docs/commit_messages.md)
-     (`api`, `ui`, `infra`, `core`, `cli`, `agentic`), or `docker`, `data`,
-     `knowledge`, `docs`, `ci`, `deps`, `agents` where those fit better
+     [pre-commit-and-quality.md](../../rules/pre-commit-and-quality.md#commit-messages)
    - A concise imperative description of WHY, not WHAT
 4. Do NOT commit files that likely contain secrets (`.env`, `.env.local`,
    credentials, API keys). Warn if any are staged.

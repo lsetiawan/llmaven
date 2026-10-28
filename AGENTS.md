@@ -5,8 +5,7 @@ any other agent harness) working with this repository.
 
 **This file is the entry point and is deliberately short.** It carries only what
 every agent needs before doing anything. Detailed rules live under
-[`.agents/rules/`](.agents/rules/) and domain guides under
-[`agent_docs/`](agent_docs/). Both are loaded on demand — read the one whose
+[`.agents/rules/`](.agents/rules/) and are loaded on demand — read the one whose
 trigger matches your current task, not all of them.
 
 ## Non-negotiables
@@ -35,7 +34,7 @@ These apply to every task, in every session:
 8. **Never commit secrets or deployment config.** `llmaven-config*.yaml`,
    `.env`, and `.env.*` are gitignored; only `*.example` files are tracked.
 9. **Never touch live infrastructure without explicit approval.**
-   `llmaven infra deploy`, `llmaven infra destroy`, and
+   `llmaven infra deploy` (including `--preview`), `llmaven infra destroy`, and
    `pixi run -e llmaven clean` (`docker-compose down -v`) change or delete real
    resources and data.
 
@@ -43,26 +42,19 @@ These apply to every task, in every session:
 
 Load the rule file whose trigger matches what you are about to do.
 
-| Rule file                                                              | Load when                                                                  |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [working-agreement.md](.agents/rules/working-agreement.md)             | Starting any implementation, refactor, or bugfix — the behavioral baseline |
-| [contribution-discipline.md](.agents/rules/contribution-discipline.md) | About to commit, open a PR, or asked to "contribute" / "fix some issues"   |
-| [pixi-environments.md](.agents/rules/pixi-environments.md)             | Running any command, adding a dependency, or editing `pixi.toml`           |
-| [pre-commit-and-quality.md](.agents/rules/pre-commit-and-quality.md)   | Committing, preparing a PR, or claiming checks or tests pass               |
-| [repository-map.md](.agents/rules/repository-map.md)                   | You need to know what this repo is, where a file lives, or how it deploys  |
-| [onboarding.md](.agents/rules/onboarding.md)                           | First-time setup, or helping a new contributor get started                 |
-| [troubleshooting.md](.agents/rules/troubleshooting.md)                 | A documented command fails or behaves unexpectedly                         |
-
-## Domain Guides
-
-| Guide                                                   | Load when                                    |
-| ------------------------------------------------------- | -------------------------------------------- |
-| [`adding_endpoints.md`](agent_docs/adding_endpoints.md) | Adding new API endpoints                     |
-| [`agentic_rag.md`](agent_docs/agentic_rag.md)           | Working on `src/llmaven/agentic/` or its CLI |
-| [`code_conventions.md`](agent_docs/code_conventions.md) | Naming patterns, style questions             |
-| [`commit_messages.md`](agent_docs/commit_messages.md)   | Choosing a commit type and scope             |
-| [`infrastructure.md`](agent_docs/infrastructure.md)     | Pulumi/Azure deployment                      |
-| [`troubleshooting.md`](agent_docs/troubleshooting.md)   | Debugging Qdrant, model, or API issues       |
+| Rule file                                                              | Load when                                                                        |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [working-agreement.md](.agents/rules/working-agreement.md)             | Starting any implementation, refactor, or bugfix — the behavioral baseline       |
+| [contribution-discipline.md](.agents/rules/contribution-discipline.md) | About to commit, open a PR, or asked to "contribute" / "fix some issues"         |
+| [pixi-environments.md](.agents/rules/pixi-environments.md)             | Running any command, adding a dependency, or editing `pixi.toml`                 |
+| [pre-commit-and-quality.md](.agents/rules/pre-commit-and-quality.md)   | Committing, preparing a PR, or claiming checks or tests pass                     |
+| [repository-map.md](.agents/rules/repository-map.md)                   | You need to know what this repo is, where a file lives, or how it deploys        |
+| [onboarding.md](.agents/rules/onboarding.md)                           | First-time setup, or helping a new contributor get started                       |
+| [troubleshooting.md](.agents/rules/troubleshooting.md)                 | A documented command fails, or debugging Qdrant, model, or API issues            |
+| [code-conventions.md](.agents/rules/code-conventions.md)               | Naming a new module, class, function, or constant, or a style question           |
+| [api-endpoints.md](.agents/rules/api-endpoints.md)                     | Adding or changing a REST endpoint under `src/llmaven/v1/`                       |
+| [agentic-rag.md](.agents/rules/agentic-rag.md)                         | Working on `src/llmaven/agentic/`, its endpoints, or `llmaven agentic`           |
+| [infrastructure.md](.agents/rules/infrastructure.md)                   | Pulumi/Azure code under `infrastructure*/` or `deployment/`, or `infra` commands |
 
 ## Skills
 
