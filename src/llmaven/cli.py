@@ -760,16 +760,20 @@ def _extract_litellm_logs(
                 try:
                     resp = http_client.get(endpoint, params=params, headers=headers)
                     resp.raise_for_status()
-                except httpx.HTTPError as exc:
-                    if resp.status_code >= 500:
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code >= 500:
                         print(
-                            f"Server error for {date_str}: {resp.status_code}. Cooling off for 60 seconds..."
+                            f"Server error for {date_str}: {exc.response.status_code}. Cooling off for 60 seconds..."
                         )
                         sleep(60)  # brief pause before retrying on server errors
                     else:
                         _fail_extract(
                             f"LiteLLM /spend/logs failed for {date_str}: {exc}"
                         )
+                except httpx.HTTPError as exc:
+                    # Transport errors have no response to read; don't fall
+                    # through to a stale or unbound `resp`.
+                    _fail_extract(f"LiteLLM /spend/logs failed for {date_str}: {exc}")
 
                 try:
                     body = resp.json()

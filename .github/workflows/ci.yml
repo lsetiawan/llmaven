@@ -52,8 +52,7 @@ jobs:
             --tb=short \
             --color=yes \
             --ignore=tests/agentic/ \
-            --ignore=tests/v1/ \
-            || echo "Core tests completed with status: $?"
+            --ignore=tests/v1/
 
       - name: Run agentic tests (excluding CLI integration tests)
         run: |
@@ -176,7 +175,7 @@ jobs:
 
       - name: Run pre-commit hooks
         run: |
-          pixi run -e llmaven pre-commit run --all-files --show-diff-on-failure
+          pixi run -e llmaven pre-commit-all --show-diff-on-failure
 
   summary:
     name: CI Summary
@@ -191,14 +190,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Job Status" >> $GITHUB_STEP_SUMMARY
           echo "- Linux Tests: ${{ needs.test-linux.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- macOS Tests: ${{ needs.test-macos.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Pre-commit Hooks: ${{ needs.pre-commit.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.test-linux.result }}" == "success" ] && \
-             [ "${{ needs.test-macos.result }}" == "success" ] && \
              [ "${{ needs.pre-commit.result }}" == "success" ]; then
             echo "✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Some checks failed or were skipped" >> $GITHUB_STEP_SUMMARY
+            exit 1
           fi

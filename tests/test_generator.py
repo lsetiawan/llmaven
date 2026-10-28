@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 from llmaven.main import app
+from llmaven.services import generation_service
 
 client = TestClient(app)
 
@@ -23,7 +26,15 @@ def test_generate_endpoint(prompt, generation_model, expected_status):
     """
     payload = {"prompt": prompt, "generation_model": generation_model}
 
-    response = client.post("/api/generate/", json=payload)
+    # Mock the model so the test doesn't download and load a 7B checkpoint.
+    with (
+        patch.object(generation_service, "LanguageModel") as mock_model_cls,
+        patch.dict(generation_service.MODEL_INSTANCES, clear=True),
+    ):
+        mock_model_cls.return_value.inference.return_value = f"Answer to: {prompt}"
+        response = client.post("/v1/generate", json=payload)
+
+    mock_model_cls.assert_called_once_with(model_name=generation_model)
 
     assert response.status_code == expected_status
     assert "answer" in response.json()

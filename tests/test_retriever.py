@@ -1,6 +1,10 @@
+from unittest.mock import patch
+
 import pytest
+from langchain.schema import Document
 from fastapi.testclient import TestClient
 from llmaven.main import app
+from llmaven.services import retrieval_service
 
 client = TestClient(app)
 
@@ -37,7 +41,15 @@ def test_retrieve_endpoint(query, expected_status):
         "embedding_model": "sentence-transformers/all-MiniLM-L12-v2",
     }
 
-    response = client.post("/api/retrieve/", json=payload)
+    # Mock the retriever so the test doesn't download an embedding model.
+    with patch.object(retrieval_service, "Retriever") as mock_retriever_cls:
+        mock_retriever_cls.return_value.retrieve_docs.return_value = [
+            Document(**doc) for doc in sample_documents
+        ]
+        response = client.post("/v1/retrieve", json=payload)
+
+    mock_retriever_cls.assert_called_once_with(model_name=payload["embedding_model"])
+    mock_retriever_cls.return_value.retrieve_docs.assert_called_once_with(query)
 
     assert response.status_code == expected_status
     assert "docs" in response.json()
