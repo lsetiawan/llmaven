@@ -37,7 +37,8 @@ Run the checks that gate a commit or PR and report their real output.
    | Changed file                                 | Extra check                                                                                     |
    | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
    | `docker/docker-compose.yml`                  | `docker compose -f docker/docker-compose.yml config --quiet` (needs `docker/.env`)              |
-   | `docker/dockerfiles/*`                       | `docker build -f docker/dockerfiles/<name> docker` — ask first; it pulls large base images      |
+   | `docker/dockerfiles/*`                       | `docker build -f docker/dockerfiles/<name> docker` (mlflow, litellm) — ask first; large pulls   |
+   | `docker/dockerfiles/backup.dockerfile`       | `docker build -f docker/dockerfiles/backup.dockerfile .` — repo-root context, as in CI          |
    | `src/llmaven/infrastructure/`, `deployment/` | `pytest tests/infrastructure/`; `llmaven infra deploy --preview` only with human approval       |
    | `src/llmaven/v1/`, `services/`, `schemas/`   | Also exercise the endpoint against `pixi run -e llmaven api-server` when behavior changed       |
    | `pixi.toml` / `pixi.lock`                    | `head -1 pixi.lock` still reads `version: 6` (CI runs Pixi 0.63.2); review `git diff pixi.lock` |

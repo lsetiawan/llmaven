@@ -117,8 +117,8 @@ python-dotenv = ">=1.1.1,<2"
 pyarrow = ">=19.0.0,<20"
 
 [feature.llmaven.tasks]
-api-server = { cmd = "llmaven serve" }
-ui = { cmd = "llmaven ui" }
+api-server = { cmd = "llmaven server serve" }
+ui = { cmd = "llmaven server ui" }
 test = { cmd = "pytest tests/", description = "Run the full test suite (needs Docker for testcontainers)" }
 verify = { description = "Run every check that gates a commit or PR", depends-on = [
     "pre-commit-all",

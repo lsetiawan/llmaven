@@ -56,6 +56,7 @@ an agentic RAG system (see
 ├── scripts/                     # Postgres backup/export helpers
 ├── src/llmaven/
 │   ├── cli.py                   # Typer CLI: server, infra, backup-infra, agentic
+│   ├── config.py                # Pydantic Settings for the web service
 │   ├── main.py                  # FastAPI app
 │   ├── v1/                      # REST API v1 endpoints
 │   ├── core/                    # Legacy RAG: embeddings, retriever, generator
@@ -63,6 +64,7 @@ an agentic RAG system (see
 │   ├── services/                # Business logic
 │   ├── schemas/                 # Pydantic models (API contracts)
 │   ├── frontend/                # Streamlit UI
+│   ├── proxy/                   # Package stub (only __init__.py)
 │   ├── data/                    # Request-log download and session grouping
 │   ├── deployment/              # `llmaven infra init|validate|deploy` logic
 │   ├── infrastructure/          # Pulumi resources for Azure
@@ -79,7 +81,8 @@ an agentic RAG system (see
 ## Local Stack
 
 `pixi run -e llmaven up` starts `docker/docker-compose.yml`: PostgreSQL (5432),
-MinIO (9000/9001), Qdrant (6333), MLflow (8080), and LiteLLM (4000). It reads
+MinIO (9000/9001, plus a one-shot `createbuckets` init job), Qdrant (6333),
+MLflow (8080), Azurite blob storage (10000) and LiteLLM (4000). It reads
 `docker/.env`, created from `docker/.env.example`. `pixi run -e llmaven clean`
 runs `docker-compose down -v` and **deletes the stack's data** — ask first.
 
@@ -89,6 +92,9 @@ runs `docker-compose down -v` and **deletes the stack's data** — ask first.
   Azure. Configuration lives in `llmaven-config*.yaml`, which is gitignored and
   holds secrets. See
   [`agent_docs/infrastructure.md`](../../agent_docs/infrastructure.md).
+- `.github/workflows/build-services.yml` builds the mlflow, litellm and backup
+  images and pushes them to GHCR on pushes to `main` that touch `docker/**` or
+  `scripts/backup_postgres.py`, and on releases.
 - `deploy` and `destroy` change real cloud resources. Run `--preview` only,
   unless a human has explicitly approved the real run.
 - Real environment configs (Azure dev/prod, UW HYAK) live in the private
