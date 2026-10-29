@@ -51,8 +51,7 @@ jobs:
             --verbose \
             --tb=short \
             --color=yes \
-            --ignore=tests/agentic/ \
-            --ignore=tests/v1/
+            --ignore=tests/agentic/
 
       - name: Run agentic tests (excluding CLI integration tests)
         run: |
@@ -61,13 +60,6 @@ jobs:
             --tb=short \
             --color=yes \
             --ignore=tests/agentic/test_cli.py
-
-      - name: Run API endpoint tests
-        run: |
-          pixi run -e llmaven pytest tests/v1/ \
-            --verbose \
-            --tb=short \
-            --color=yes
 
       - name: Generate test summary
         if: always()
