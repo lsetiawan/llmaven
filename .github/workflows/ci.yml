@@ -50,16 +50,7 @@ jobs:
           pixi run -e llmaven pytest tests/ \
             --verbose \
             --tb=short \
-            --color=yes \
-            --ignore=tests/agentic/
-
-      - name: Run agentic tests (excluding CLI integration tests)
-        run: |
-          pixi run -e llmaven pytest tests/agentic/ \
-            --verbose \
-            --tb=short \
-            --color=yes \
-            --ignore=tests/agentic/test_cli.py
+            --color=yes
 
       - name: Generate test summary
         if: always()
