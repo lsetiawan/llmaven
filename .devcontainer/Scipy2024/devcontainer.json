@@ -14,9 +14,6 @@
     "cpus": 4,
     "memory": "16gb",
     "storage": "32gb"
-  },
-  "containerEnv": {
-    "OLMO_MODEL_FILE": "OLMo-7B-Instruct-Q4_K_M.gguf"
   }
   // ,
   // "updateContentCommand": {
