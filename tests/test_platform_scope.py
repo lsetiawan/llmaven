@@ -177,8 +177,6 @@ def test_compose_runs_only_platform_services() -> None:
     compose = yaml.safe_load((ROOT / "docker" / "docker-compose.yml").read_text())
     assert set(compose["services"]) == {
         "db",
-        "minio",
-        "createbuckets",
         "mlflow",
         "azurite",
         "litellm",
