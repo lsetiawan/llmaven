@@ -248,7 +248,8 @@ automatically)
 - Timeout: 10s
 - Retries: 3
 - Start period: 40s (grace period before first check)
-- Command: `wget --no-verbose --tries=1 http://localhost:4000/health/liveliness`
+- Uses Python urllib to check the `/health/liveliness` endpoint (the image has
+  no `wget` or `curl`)
 
 **Key Environment Variables**:
 
@@ -951,8 +952,8 @@ docker-compose exec db psql -U llmaven-admin -d llmaven
 # Check liveness (used by Docker health check)
 curl http://localhost:4000/health/liveliness
 
-# Alternative using wget
-wget --no-verbose --tries=1 http://localhost:4000/health/liveliness
+# Inside the container (as used by Docker health check)
+docker exec llmaven_litellm python -c "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=5)"
 ```
 
 #### MLflow Health Check
