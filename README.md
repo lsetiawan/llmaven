@@ -68,7 +68,7 @@ decision-making phases while following community best practices.
 │  Layer 2 — API Gateway (Control Plane)                          │
 │  LiteLLM (unified endpoint, auth, budgets, spend tracking)     │
 │  MLflow (experiment tracking, agent evaluation, observability) │
-│  PostgreSQL (request logs, metadata) · MinIO (artifacts)       │
+│  PostgreSQL (request logs, metadata) · Blob (artifacts)        │
 ├─────────────────────────────────────────────────────────────────┤
 │  Layer 1 — Inference Engine (Compute)                           │
 │  Azure Foundry Models · AWS Bedrock · GCP Vertex AI · vLLM    │
@@ -78,10 +78,9 @@ decision-making phases while following community best practices.
     llmaven infra [init|               (local dev stack)
      validate|deploy]        mirrors
                             ←──────→   PostgreSQL:5432
-    deployment/                        MinIO:9000/9001
-    infrastructure/                    MLflow:8080
-      (Pulumi → Azure)                LiteLLM:4000
-                                       Azurite:10000
+    deployment/                        MLflow:8080
+    infrastructure/                    LiteLLM:4000
+      (Pulumi → Azure)                Azurite:10000
 ```
 
 ## Quick Start
@@ -133,31 +132,41 @@ old `llmaven_qdrant` container:
 pixi run -e llmaven docker-compose -f docker/docker-compose.yml down --remove-orphans
 ```
 
+### Upgrading from a MinIO-era checkout
+
+The local stack no longer runs MinIO. New MLflow artifacts go to the `mlflow`
+container in Azurite, which keeps its data in the `llmaven_azurite_data` volume.
+No volumes are deleted, so your old MinIO data stays on disk.
+
+Your existing `docker/.env` still points MLflow at `s3://mlflow/`, and
+`pixi run -e llmaven up` does not rebuild images. Until you update both, even
+new experiments get an `s3://` location that MLflow can no longer write to.
+Follow the ordered steps in
+[docker/README.md](docker/README.md#upgrading-from-minio): update `.env`,
+rebuild MLflow, create a new experiment and point LiteLLM at it. Experiments
+created before the switch, including `Default`, keep their old `s3://` location.
+
 ## Docker Services
 
-The local stack runs 5 services plus a one-shot init job on a shared bridge
-network (`llmaven-network`):
+The local stack runs 4 services on a shared bridge network (`llmaven-network`):
 
-| Service           | Image              | Port(s)    | Role                                 |
-| ----------------- | ------------------ | ---------- | ------------------------------------ |
-| **PostgreSQL**    | postgres:16        | 5432       | Relational store (3 databases)       |
-| **MinIO**         | minio/minio:latest | 9000, 9001 | S3-compatible object storage         |
-| **MLflow**        | Custom (v3.6.0)    | 8080       | Experiment tracking & model registry |
-| **Azurite**       | Azurite (MCR)      | 10000      | Local Azure Blob Storage emulator    |
-| **LiteLLM**       | Custom (v1.79.1)   | 4000       | Unified AI gateway proxy             |
-| **CreateBuckets** | quay.io/minio/mc   | --         | Init container (creates S3 buckets)  |
+| Service        | Image            | Port(s) | Role                                           |
+| -------------- | ---------------- | ------- | ---------------------------------------------- |
+| **PostgreSQL** | postgres:16      | 5432    | Relational store (3 databases)                 |
+| **MLflow**     | Custom (v3.6.0)  | 8080    | Experiment tracking & model registry           |
+| **Azurite**    | Azurite (MCR)    | 10000   | Blob storage emulator (MLflow artifacts, logs) |
+| **LiteLLM**    | Custom (v1.79.1) | 4000    | Unified AI gateway proxy                       |
 
-**Startup order:** PostgreSQL, MinIO and Azurite start in parallel.
-CreateBuckets waits for MinIO. MLflow waits for PostgreSQL, MinIO, and
-CreateBuckets. LiteLLM waits for PostgreSQL, MLflow, and Azurite.
+**Startup order:** PostgreSQL and Azurite start in parallel. MLflow waits for
+both, then creates its `mlflow` blob container if it is missing. LiteLLM waits
+for PostgreSQL, MLflow, and Azurite.
 
 **Service UIs:**
 
-| Service       | URL                     |
-| ------------- | ----------------------- |
-| LiteLLM       | <http://localhost:4000> |
-| MLflow        | <http://localhost:8080> |
-| MinIO Console | <http://localhost:9001> |
+| Service | URL                     |
+| ------- | ----------------------- |
+| LiteLLM | <http://localhost:4000> |
+| MLflow  | <http://localhost:8080> |
 
 ## CLI Reference
 
@@ -185,12 +194,12 @@ llmaven backup-infra output --name <key>  # Print a backup stack output value
 The local Docker services map directly to Azure managed equivalents, deployed
 via Pulumi Automation API:
 
-| Local Service          | Azure Equivalent                              |
-| ---------------------- | --------------------------------------------- |
-| PostgreSQL (db:5432)   | Azure Database for PostgreSQL Flexible Server |
-| MinIO (minio:9000)     | Azure Blob Storage (ADLS Gen2)                |
-| MLflow (mlflow:8080)   | Azure Container App (MLflow)                  |
-| LiteLLM (litellm:4000) | Azure Container App (LiteLLM)                 |
+| Local Service           | Azure Equivalent                              |
+| ----------------------- | --------------------------------------------- |
+| PostgreSQL (db:5432)    | Azure Database for PostgreSQL Flexible Server |
+| Azurite (azurite:10000) | Azure Blob Storage (ADLS Gen2)                |
+| MLflow (mlflow:8080)    | Azure Container App (MLflow)                  |
+| LiteLLM (litellm:4000)  | Azure Container App (LiteLLM)                 |
 
 ### Deployment Workflow
 

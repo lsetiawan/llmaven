@@ -66,10 +66,10 @@ infrastructure that can be installed on cloud and HPC systems:
 ## Local Stack
 
 `pixi run -e llmaven up` starts `docker/docker-compose.yml`: PostgreSQL (5432),
-MinIO (9000/9001, plus a one-shot `createbuckets` init job), MLflow (8080),
-Azurite blob storage (10000) and LiteLLM (4000). It reads `docker/.env`, created
-from `docker/.env.example`. `pixi run -e llmaven clean` runs
-`docker-compose down -v` and **deletes the stack's data** — ask first.
+MLflow (8080), Azurite blob storage (10000, which also holds MLflow artifacts)
+and LiteLLM (4000). It reads `docker/.env`, created from `docker/.env.example`.
+`pixi run -e llmaven clean` runs `docker-compose down -v` and **deletes the
+stack's data** — ask first.
 
 ## Deployment
 
