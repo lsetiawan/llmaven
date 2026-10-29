@@ -62,7 +62,7 @@ tqdm = ">=4.66.5,<5"
 importlib-metadata = "<9"
 
 [feature.llmaven.tasks]
-test = { cmd = "pytest tests/", description = "Run the full test suite (needs Docker for testcontainers)" }
+test = { cmd = "pytest tests/", description = "Run the full test suite" }
 verify = { description = "Run every check that gates a commit or PR", depends-on = [
     "pre-commit-all",
     "okf-validate",

@@ -26,8 +26,8 @@ follow its 120-character limit; `ruff-format` wraps at 88. Run
 
 When unsure, copy the nearest existing code:
 
-- `src/llmaven/services/`: service layer
-- `src/llmaven/v1/endpoints/`: route handlers (see
-  [api-endpoints.md](api-endpoints.md))
-- `src/llmaven/agentic/`: agentic RAG components (see
-  [agentic-rag.md](agentic-rag.md))
+- `src/llmaven/cli.py`: Typer commands
+- `src/llmaven/deployment/`: `infra init|validate|deploy` logic (see
+  [infrastructure.md](infrastructure.md))
+- `src/llmaven/infrastructure/resources/`: Pulumi resources
+- `src/llmaven/data/`: request-log tooling

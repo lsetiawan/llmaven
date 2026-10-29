@@ -43,9 +43,7 @@ testing, and verification.
 | Environment | Features                                                      | Use for                                       |
 | ----------- | ------------------------------------------------------------- | --------------------------------------------- |
 | `llmaven`   | `docker`, `llmaven`, `pulumi`, `pre-commit`, `gh-cli`, `okf`  | Development, tests, pre-commit, `verify`, CI  |
-| `frontend`  | `frontend`                                                    | Streamlit UI only                             |
 | `infra`     | `infra`                                                       | Pulumi/Azure tooling                          |
-| `proxy`     | `proxy`                                                       | Legacy proxy in `archive/proxy/`              |
 | `backup`    | `backup`                                                      | `pixi run -e backup backup` (Postgres backup) |
 | `default`   | top-level `[dependencies]` only (legacy notebook/panel stack) | Legacy `archive/` tooling; not for new work   |
 
@@ -82,11 +80,10 @@ Run `pixi task list -e llmaven` to see them all:
 
 - `verify`: `pre-commit-all` + `okf-validate` + `test` — the gate before any
   commit or PR
-- `test`: `pytest tests/`, the full suite (needs Docker for testcontainers)
+- `test`: `pytest tests/`, the full suite
 - `pre-commit-install` / `pre-commit` / `pre-commit-all`: install hooks, check
   staged files, check all files
 - `okf-validate`: `okf validate --strict --drift` on `knowledge/`
-- `api-server` / `ui`: run the FastAPI service / Streamlit UI
 - `up` / `down` / `status` / `logs` / `restart`: manage the local Docker stack
 - `clean`: `docker-compose down -v` — **deletes the stack's volumes**; ask first
 - `install-pulumi`: install the Pulumi CLI into the environment

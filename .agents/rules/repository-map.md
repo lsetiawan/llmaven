@@ -18,9 +18,6 @@ infrastructure that can be installed on cloud and HPC systems:
 - **Layer 3 — RSE-Plugins:** Claude Code plugins, developed in
   [uw-ssec/rse-plugins](https://github.com/uw-ssec/rse-plugins), not here.
 
-The `llmaven` Python package also carries a FastAPI service, a Streamlit UI, and
-an agentic RAG system (see [agentic-rag.md](agentic-rag.md)).
-
 **Repository Stats:**
 
 - **Type:** Python package (`src/` layout, hatchling) plus deployment code
@@ -49,25 +46,15 @@ an agentic RAG system (see [agentic-rag.md](agentic-rag.md)).
 │   ├── config.yaml              # LiteLLM config for the local stack
 │   ├── dockerfiles/             # litellm, mlflow, backup images
 │   └── .env.example             # Copy to docker/.env (gitignored)
-├── eval/                        # RAG evaluation and data-extraction experiments
 ├── knowledge/                   # OKF project memory, managed by the okf CLI
 ├── scripts/                     # Postgres backup/export helpers
 ├── src/llmaven/
-│   ├── cli.py                   # Typer CLI: server, infra, backup-infra, agentic
-│   ├── config.py                # Pydantic Settings for the web service
-│   ├── main.py                  # FastAPI app
-│   ├── v1/                      # REST API v1 endpoints
-│   ├── core/                    # Legacy RAG: embeddings, retriever, generator
-│   ├── agentic/                 # Agentic RAG: ingestion, search, agent, providers
-│   ├── services/                # Business logic
-│   ├── schemas/                 # Pydantic models (API contracts)
-│   ├── frontend/                # Streamlit UI
-│   ├── proxy/                   # Package stub (only __init__.py)
+│   ├── cli.py                   # Typer CLI: infra, backup-infra
 │   ├── data/                    # Request-log download and session grouping
 │   ├── deployment/              # `llmaven infra init|validate|deploy` logic
 │   ├── infrastructure/          # Pulumi resources for Azure
 │   └── infrastructure_backup/   # Pulumi program for the backup stack
-├── tests/                       # pytest suite (agentic/, v1/, data/, infrastructure/)
+├── tests/                       # pytest suite (data/, infrastructure/, platform-scope guards)
 ├── pixi.toml / pixi.lock        # Environments, tasks, and lock file (don't hand-edit the lock)
 ├── pyproject.toml               # Package metadata, extras (test, deploy, production)
 ├── AGENTS.md                    # Entry point for AI assistants
@@ -79,10 +66,10 @@ an agentic RAG system (see [agentic-rag.md](agentic-rag.md)).
 ## Local Stack
 
 `pixi run -e llmaven up` starts `docker/docker-compose.yml`: PostgreSQL (5432),
-MinIO (9000/9001, plus a one-shot `createbuckets` init job), Qdrant (6333),
-MLflow (8080), Azurite blob storage (10000) and LiteLLM (4000). It reads
-`docker/.env`, created from `docker/.env.example`. `pixi run -e llmaven clean`
-runs `docker-compose down -v` and **deletes the stack's data** — ask first.
+MinIO (9000/9001, plus a one-shot `createbuckets` init job), MLflow (8080),
+Azurite blob storage (10000) and LiteLLM (4000). It reads `docker/.env`, created
+from `docker/.env.example`. `pixi run -e llmaven clean` runs
+`docker-compose down -v` and **deletes the stack's data** — ask first.
 
 ## Deployment
 
@@ -103,9 +90,6 @@ runs `docker-compose down -v` and **deletes the stack's data** — ask first.
 `.github/workflows/ci.yml` runs on pushes to `main` and `feature/**` and on PRs
 to `main`, in the `llmaven` environment on Ubuntu:
 
-- pytest in three steps: `tests/` minus `agentic/` and `v1/`, then
-  `tests/agentic/` minus `test_cli.py`, then `tests/v1/`.
-  `tests/agentic/test_cli.py` never runs there, so a green CI run is not a
-  full-suite pass — run `pixi run -e llmaven test` and report it.
+- `pytest tests/`, the full suite.
 - `pre-commit-all`.
 - A summary job that fails if either job above did not succeed.

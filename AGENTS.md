@@ -50,11 +50,12 @@ Load the rule file whose trigger matches what you are about to do.
 | [pre-commit-and-quality.md](.agents/rules/pre-commit-and-quality.md)   | Committing, preparing a PR, or claiming checks or tests pass                     |
 | [repository-map.md](.agents/rules/repository-map.md)                   | You need to know what this repo is, where a file lives, or how it deploys        |
 | [onboarding.md](.agents/rules/onboarding.md)                           | First-time setup, or helping a new contributor get started                       |
-| [troubleshooting.md](.agents/rules/troubleshooting.md)                 | A documented command fails, or debugging Qdrant, model, or API issues            |
+| [troubleshooting.md](.agents/rules/troubleshooting.md)                 | A documented command fails or behaves unexpectedly                               |
 | [code-conventions.md](.agents/rules/code-conventions.md)               | Naming a new module, class, function, or constant, or a style question           |
-| [api-endpoints.md](.agents/rules/api-endpoints.md)                     | Adding or changing a REST endpoint under `src/llmaven/v1/`                       |
-| [agentic-rag.md](.agents/rules/agentic-rag.md)                         | Working on `src/llmaven/agentic/`, its endpoints, or `llmaven agentic`           |
 | [infrastructure.md](.agents/rules/infrastructure.md)                   | Pulumi/Azure code under `infrastructure*/` or `deployment/`, or `infra` commands |
+
+The agentic RAG system now lives in
+[uw-ssec/llmoxie-rag](https://github.com/uw-ssec/llmoxie-rag).
 
 ## Skills
 
