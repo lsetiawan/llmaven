@@ -136,13 +136,15 @@ pixi run -e llmaven docker-compose -f docker/docker-compose.yml down --remove-or
 
 The local stack no longer runs MinIO. New MLflow artifacts go to the `mlflow`
 container in Azurite, which keeps its data in the `llmaven_azurite_data` volume.
-The `down --remove-orphans` command above also removes the old `llmaven_minio`
-container. It does not delete any volumes, so your old MinIO data stays on disk.
+No volumes are deleted, so your old MinIO data stays on disk.
 
-Experiments created before the switch, including `Default`, keep their stored
-`s3://mlflow/...` artifact location. Their run metadata is still in PostgreSQL,
-but MLflow can no longer read or write their artifacts. Log new runs to a new
-experiment so their artifacts land in Azurite.
+Your existing `docker/.env` still points MLflow at `s3://mlflow/`, and
+`pixi run -e llmaven up` does not rebuild images. Until you update both, even
+new experiments get an `s3://` location that MLflow can no longer write to.
+Follow the ordered steps in
+[docker/README.md](docker/README.md#upgrading-from-minio): update `.env`,
+rebuild MLflow, create a new experiment and point LiteLLM at it. Experiments
+created before the switch, including `Default`, keep their old `s3://` location.
 
 ## Docker Services
 

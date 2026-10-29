@@ -762,18 +762,46 @@ for blob in client.get_container_client("mlflow").list_blobs():
 
 #### Upgrading from MinIO
 
-Earlier versions of this stack stored MLflow artifacts in MinIO. Existing MLflow
-experiments, including `Default`, keep the `s3://mlflow/...` artifact location
-stored in Postgres; changing `MLFLOW_DEFAULT_ARTIFACT_ROOT` only affects new
-experiments. Old artifacts stay in the old MinIO volume, which compose no longer
-manages.
+Earlier versions of this stack stored MLflow artifacts in MinIO. Two things do
+not change on their own when you pull this version:
 
-- Create a new experiment for new artifacts (and set `MLFLOW_EXPERIMENT_NAME` to
-  it for LiteLLM), or keep the old MinIO running separately if you need to read
-  old artifacts.
-- `docker-compose down --remove-orphans` removes the leftover MinIO container
-  only. The old volume is left in place unless you deliberately remove it
-  yourself.
+- Your existing `docker/.env` still sets
+  `MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://mlflow/`. Updating `.env.example` does not
+  touch it, and with that value even new experiments get an `s3://` location
+  that the MLflow image can no longer write to.
+- Existing MLflow experiments, including `Default`, keep the `s3://mlflow/...`
+  artifact location stored in Postgres. Changing the default root only affects
+  experiments created afterwards.
+
+Upgrade in this order:
+
+1. Edit your existing `docker/.env` in place, keeping your API keys and other
+   credentials. Set
+   `MLFLOW_DEFAULT_ARTIFACT_ROOT=wasbs://mlflow@devstoreaccount1.blob.core.windows.net/`
+   and check that `AZURE_STORAGE_CONNECTION_STRING` matches `.env.example`
+   (`BlobEndpoint=http://azurite:10000/devstoreaccount1`). The old `MINIO_*`,
+   `S3_ENDPOINT_URL`, `MLFLOW_S3_*` and `AWS_*` lines are unused and can be
+   removed.
+2. Rebuild MLflow and recreate the stack. `pixi run -e llmaven up` runs
+   `docker-compose up -d` without `--build`, so build explicitly from `docker/`:
+
+   ```bash
+   docker-compose up -d --build --remove-orphans
+   ```
+
+   `--remove-orphans` removes the leftover MinIO containers only. It does not
+   delete volumes, so the old MinIO data stays on disk unless you deliberately
+   remove that volume yourself.
+
+3. Create a new experiment in the MLflow UI (<http://localhost:8080> by default,
+   or your `MLFLOW_PORT`) and check that its artifact location starts with
+   `wasbs://mlflow@`.
+4. Point LiteLLM at it: set `MLFLOW_EXPERIMENT_NAME` in `docker/.env` to the new
+   experiment's name, then run `docker-compose up -d litellm` to recreate
+   LiteLLM with the new value.
+
+Runs in the old experiments keep their metadata, but MLflow can no longer read
+their artifacts. Keep the old MinIO running separately if you need them.
 
 ## Docker Compose Infrastructure
 
