@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import click
 import pytest
 from typer.testing import CliRunner
 
@@ -31,7 +32,7 @@ class TestInfraValidateEnvFile:
         )
 
         assert result.exit_code == 2
-        assert "Invalid value for '--env-file'" in result.output
+        assert "Invalid value for '--env-file'" in click.unstyle(result.output)
 
     def test_rejects_env_file_that_is_a_directory(
         self, runner: CliRunner, tmp_path: Path
@@ -45,7 +46,7 @@ class TestInfraValidateEnvFile:
         )
 
         assert result.exit_code == 2
-        assert "Invalid value for '--env-file'" in result.output
+        assert "Invalid value for '--env-file'" in click.unstyle(result.output)
 
     @patch("llmaven.deployment.validate.validate_config")
     def test_accepts_valid_env_file_and_passes_path_through(
@@ -95,7 +96,7 @@ class TestInfraDeployEnvFile:
         )
 
         assert result.exit_code == 2
-        assert "Invalid value for '--env-file'" in result.output
+        assert "Invalid value for '--env-file'" in click.unstyle(result.output)
 
     def test_rejects_env_file_that_is_a_directory(
         self, runner: CliRunner, tmp_path: Path
@@ -109,7 +110,7 @@ class TestInfraDeployEnvFile:
         )
 
         assert result.exit_code == 2
-        assert "Invalid value for '--env-file'" in result.output
+        assert "Invalid value for '--env-file'" in click.unstyle(result.output)
 
     @patch("llmaven.deployment.deploy.deploy_infrastructure")
     def test_accepts_valid_env_file_and_passes_path_through(

@@ -7,7 +7,6 @@ This module provides utilities for secure secrets handling, including:
 - Secret name transformation
 """
 
-import logging
 import os
 import re
 import secrets
@@ -17,8 +16,6 @@ from typing import Dict, List, Optional, Set
 
 import pulumi
 from pulumi import Output
-
-logger = logging.getLogger(__name__)
 
 
 def generate_secure_password(
@@ -233,11 +230,13 @@ def load_env_file(env_file_path: Optional[Path] = None) -> None:
             if key not in os.environ:
                 os.environ[key] = value
                 loaded_count += 1
-                logger.info("Loaded secret from file: %s", key)
+                pulumi.log.info(f"✓ Loaded secret from file: {key}")
             else:
-                logger.info("Skipping %s from file (already set in environment)", key)
+                pulumi.log.info(
+                    f"⚠ Skipping {key} from file (already set in environment)"
+                )
 
-    logger.info("Loaded %d secrets from %s", loaded_count, env_file_path)
+    pulumi.log.info(f"✓ Loaded {loaded_count} secrets from {env_file_path}")
 
 
 def get_llmaven_secrets(env_file_path: Optional[Path] = None) -> Dict[str, str]:
@@ -273,7 +272,7 @@ def get_llmaven_secrets(env_file_path: Optional[Path] = None) -> Dict[str, str]:
             # Remove prefix and convert to kebab-case
             secret_name = key[len(prefix) :].lower().replace("_", "-")
             secrets[secret_name] = value
-            logger.info("Found secret: %s (from %s)", secret_name, key)
+            pulumi.log.info(f"✓ Found secret: {secret_name} (from {key})")
 
     return secrets
 
