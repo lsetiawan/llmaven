@@ -16,9 +16,11 @@ from pathlib import Path
 
 import pytest
 import typer
+import yaml
 from typer.testing import CliRunner
 
 from llmaven.cli import app
+from llmaven.infrastructure.config.schema import StorageConfig
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -169,3 +171,21 @@ def test_pixi_has_no_rag_environments_or_tasks() -> None:
     for table in manifest.get("feature", {}).values():
         tasks |= set(table.get("tasks", {}))
     assert tasks.isdisjoint({"serve-panel", "start-jlab", "api-server", "ui"})
+
+
+def test_compose_runs_only_platform_services() -> None:
+    compose = yaml.safe_load((ROOT / "docker" / "docker-compose.yml").read_text())
+    assert set(compose["services"]) == {
+        "db",
+        "minio",
+        "createbuckets",
+        "mlflow",
+        "azurite",
+        "litellm",
+    }
+
+
+def test_storage_keeps_llmaven_container() -> None:
+    # Removing a container from the config deletes its blob data on the next
+    # `llmaven infra deploy`, so the llmaven container must stay.
+    assert StorageConfig().containers == ["mlflow", "llmaven", "litellm-logs"]
