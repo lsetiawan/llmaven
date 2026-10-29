@@ -81,7 +81,7 @@ decision-making phases while following community best practices.
     deployment/                        MinIO:9000/9001
     infrastructure/                    MLflow:8080
       (Pulumi → Azure)                LiteLLM:4000
-                                       Qdrant:6333
+                                       Azurite:10000
 ```
 
 ## Quick Start
@@ -122,31 +122,42 @@ pixi run -e llmaven logs
 pixi run -e llmaven down
 ```
 
+### Upgrading from a RAG-era checkout
+
+The agentic RAG system now lives in
+[uw-ssec/llmoxie-rag](https://github.com/uw-ssec/llmoxie-rag):
+`llmaven agentic ...` is now `llmoxie-rag ...` there. Run this once to clear an
+old `llmaven_qdrant` container:
+
+```bash
+pixi run -e llmaven docker-compose -f docker/docker-compose.yml down --remove-orphans
+```
+
 ## Docker Services
 
-The local stack runs 6 services on a shared bridge network (`llmaven-network`):
+The local stack runs 5 services plus a one-shot init job on a shared bridge
+network (`llmaven-network`):
 
-| Service           | Image                | Port(s)    | Role                                 |
-| ----------------- | -------------------- | ---------- | ------------------------------------ |
-| **Qdrant**        | qdrant/qdrant:latest | 6333       | Vector DB for semantic search        |
-| **PostgreSQL**    | postgres:16          | 5432       | Relational store (3 databases)       |
-| **MinIO**         | minio/minio:latest   | 9000, 9001 | S3-compatible object storage         |
-| **MLflow**        | Custom (v3.6.0)      | 8080       | Experiment tracking & model registry |
-| **LiteLLM**       | Custom (v1.79.1)     | 4000       | Unified AI gateway proxy             |
-| **CreateBuckets** | quay.io/minio/mc     | --         | Init container (creates S3 buckets)  |
+| Service           | Image              | Port(s)    | Role                                 |
+| ----------------- | ------------------ | ---------- | ------------------------------------ |
+| **PostgreSQL**    | postgres:16        | 5432       | Relational store (3 databases)       |
+| **MinIO**         | minio/minio:latest | 9000, 9001 | S3-compatible object storage         |
+| **MLflow**        | Custom (v3.6.0)    | 8080       | Experiment tracking & model registry |
+| **Azurite**       | Azurite (MCR)      | 10000      | Local Azure Blob Storage emulator    |
+| **LiteLLM**       | Custom (v1.79.1)   | 4000       | Unified AI gateway proxy             |
+| **CreateBuckets** | quay.io/minio/mc   | --         | Init container (creates S3 buckets)  |
 
-**Startup order:** PostgreSQL, MinIO, Qdrant start in parallel. CreateBuckets
-waits for MinIO. MLflow waits for PostgreSQL, MinIO, and CreateBuckets. LiteLLM
-waits for PostgreSQL and MLflow.
+**Startup order:** PostgreSQL, MinIO and Azurite start in parallel.
+CreateBuckets waits for MinIO. MLflow waits for PostgreSQL, MinIO, and
+CreateBuckets. LiteLLM waits for PostgreSQL, MLflow, and Azurite.
 
 **Service UIs:**
 
-| Service          | URL                               |
-| ---------------- | --------------------------------- |
-| LiteLLM          | <http://localhost:4000>           |
-| MLflow           | <http://localhost:8080>           |
-| MinIO Console    | <http://localhost:9001>           |
-| Qdrant Dashboard | <http://localhost:6333/dashboard> |
+| Service       | URL                     |
+| ------------- | ----------------------- |
+| LiteLLM       | <http://localhost:4000> |
+| MLflow        | <http://localhost:8080> |
+| MinIO Console | <http://localhost:9001> |
 
 ## CLI Reference
 
@@ -158,10 +169,15 @@ llmaven version                           # Show version
 # Infrastructure commands
 llmaven infra init --environment dev      # Generate llmaven-config.yaml
 llmaven infra validate --config llmaven-config.yaml  # Validate config + cost estimate
-llmaven infra deploy --preview            # Dry run (no resources created)
+llmaven infra deploy --preview            # Dry run (may still create the resource group and state storage)
 llmaven infra deploy --yes                # Deploy to Azure
 llmaven infra status                      # View deployment status
+llmaven infra extract --from 2026-01-01 --to 2026-01-31  # Logs/traces to a JSONL zip
 llmaven infra destroy --yes               # Tear down resources
+
+# Backup storage commands
+llmaven backup-infra deploy --yes         # Deploy the backup storage infrastructure
+llmaven backup-infra output --name <key>  # Print a backup stack output value
 ```
 
 ## Azure Infrastructure Deployment
@@ -216,7 +232,7 @@ via Pulumi Automation API:
 5. **Deploy** (or preview first):
 
    ```bash
-   llmaven infra deploy --preview   # Dry run
+   llmaven infra deploy --preview   # Dry run (may create the resource group and state storage)
    llmaven infra deploy --yes       # Actual deployment
    ```
 

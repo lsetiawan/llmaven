@@ -87,11 +87,8 @@ notebooks, `pixi.lock`, and `tests/data/fixtures/*.jsonl`. Prettier skips
 
 ## Tests
 
-`pixi run -e llmaven test` runs `pytest tests/`, the **full** suite. It needs
-Docker running, because Qdrant-backed tests use testcontainers. CI is not a
-substitute (see [repository-map.md](repository-map.md#ci)): it skips
-`tests/agentic/test_cli.py`. Report the local run's summary line, and name any
-test you skipped or deselected and why.
+`pixi run -e llmaven test` runs `pytest tests/`, the **full** suite. Report the
+local run's summary line, and name any test you skipped or deselected and why.
 
 ## Commit Messages
 
@@ -112,30 +109,26 @@ Commits and PR titles follow
 | `ci`       | CI workflows                  |
 | `build`    | Build system and dependencies |
 
-| Scope       | Area                                          |
-| ----------- | --------------------------------------------- |
-| `api`       | REST API endpoints                            |
-| `ui`        | Streamlit frontend                            |
-| `infra`     | Pulumi infrastructure                         |
-| `core`      | Legacy ML/AI components (`src/llmaven/core/`) |
-| `cli`       | Command-line interface                        |
-| `agentic`   | Agentic RAG system                            |
-| `docker`    | Local stack and service images                |
-| `data`      | Request-log tooling (`src/llmaven/data/`)     |
-| `knowledge` | OKF project memory                            |
-| `docs`      | Documentation                                 |
-| `ci`        | CI workflows                                  |
-| `deps`      | Dependency updates                            |
-| `agents`    | Agent harness (`AGENTS.md`, `.agents/`)       |
+| Scope       | Area                                      |
+| ----------- | ----------------------------------------- |
+| `infra`     | Pulumi infrastructure                     |
+| `cli`       | Command-line interface                    |
+| `docker`    | Local stack and service images            |
+| `data`      | Request-log tooling (`src/llmaven/data/`) |
+| `knowledge` | OKF project memory                        |
+| `docs`      | Documentation                             |
+| `ci`        | CI workflows                              |
+| `deps`      | Dependency updates                        |
+| `agents`    | Agent harness (`AGENTS.md`, `.agents/`)   |
 
 The scope is optional; leave it out when no single area fits. Examples:
 
 ```text
-feat(api): add summarization endpoint
-fix(core): handle empty document retrieval
-refactor(agentic): simplify ingestion pipeline
-test(api): add retrieval endpoint tests
-docs: update API documentation
+feat(infra): add a Key Vault for the LiteLLM master key
+fix(data): keep sessions that span midnight together
+refactor(cli): split infra commands out of cli.py
+chore(docker): pin the LiteLLM image tag
+docs: update the deployment guide
 ```
 
 The `commit` skill has the full procedure, including the `Assisted-by:` trailer.

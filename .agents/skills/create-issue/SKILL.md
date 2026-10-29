@@ -56,9 +56,9 @@ EOF
 | Type            | Example                                                      |
 | --------------- | ------------------------------------------------------------ |
 | `feat(infra)`   | `feat(infra): add a Key Vault for the LiteLLM master key`    |
-| `fix(agentic)`  | `fix(agentic): keep citations when reranking is disabled`    |
+| `fix(data)`     | `fix(data): keep sessions that span midnight together`       |
 | `refactor(cli)` | `refactor(cli): split infra commands out of cli.py`          |
-| `docs(api)`     | `docs(api): document the v1 agentic chat request schema`     |
+| `docs(docker)`  | `docs(docker): document the local Azurite blob emulator`     |
 | `chore(deps)`   | `chore(deps): bump the LiteLLM image to the next stable tag` |
 
 ## Rules

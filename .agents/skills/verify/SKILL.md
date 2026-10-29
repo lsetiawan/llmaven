@@ -24,8 +24,7 @@ Run the checks that gate a commit or PR and report their real output.
    ```
 
    This runs `pre-commit-all`, `okf-validate` (`okf validate --strict --drift`),
-   and `test` (`pytest tests/`, the full suite — Docker must be running for
-   testcontainers). Do not substitute CI's narrower test steps for it.
+   and `test` (`pytest tests/`, the full suite).
 
 3. If a pre-commit hook reports "files were modified by this hook", re-stage
    those files and rerun `pixi run -e llmaven verify`. Auto-fixes are expected,
@@ -40,7 +39,6 @@ Run the checks that gate a commit or PR and report their real output.
    | `docker/dockerfiles/*`                       | `docker build -f docker/dockerfiles/<name> docker` (mlflow, litellm) — ask first; large pulls   |
    | `docker/dockerfiles/backup.dockerfile`       | `docker build -f docker/dockerfiles/backup.dockerfile .` — repo-root context, as in CI          |
    | `src/llmaven/infrastructure/`, `deployment/` | `pytest tests/infrastructure/`; `llmaven infra deploy --preview` only with human approval       |
-   | `src/llmaven/v1/`, `services/`, `schemas/`   | Also exercise the endpoint against `pixi run -e llmaven api-server` when behavior changed       |
    | `pixi.toml` / `pixi.lock`                    | `head -1 pixi.lock` still reads `version: 6` (CI runs Pixi 0.63.2); review `git diff pixi.lock` |
    | `knowledge/`                                 | Covered by `okf-validate`; see the `okf-memory` skill for its traps                             |
 

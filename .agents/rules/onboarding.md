@@ -22,13 +22,13 @@ pixi run -e llmaven llmaven version
 # Create the local env file (gitignored) and fill in API keys
 cp docker/.env.example docker/.env
 
-pixi run -e llmaven up       # start PostgreSQL, MinIO, Qdrant, MLflow, LiteLLM
+pixi run -e llmaven up       # start PostgreSQL, MinIO, MLflow, Azurite, LiteLLM
 pixi run -e llmaven status   # check the containers
 pixi run -e llmaven down     # stop them (keeps data)
 ```
 
 Service URLs: LiteLLM <http://localhost:4000>, MLflow <http://localhost:8080>,
-MinIO console <http://localhost:9001>, Qdrant <http://localhost:6333/dashboard>.
+MinIO console <http://localhost:9001>.
 
 ## Where to Go Next
 
