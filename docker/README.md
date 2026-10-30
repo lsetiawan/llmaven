@@ -209,7 +209,7 @@ Once all services are healthy:
 **Image**: Custom build from `dockerfiles/litellm.dockerfile`
 
 - Base image: `ghcr.io/berriai/litellm:v1.106.6` (pinned by digest)
-- Pre-installed packages: `mlflow==3.6.0`
+- Pre-installed packages: `mlflow-skinny==3.6.0`
 
 **Ports**:
 
@@ -486,10 +486,19 @@ LITELLM_MASTER_KEY=                                                   # Required
 
 **Master key**: LiteLLM 1.106+ refuses to start when `LITELLM_MASTER_KEY` is
 unset, empty, or one of the publicly known defaults (including `sk-1234`).
-Generate a key before the first start:
+Generate a key before the first start, only if `.env` doesn't already have one
+(a new key on an existing database needs the migration below):
 
 ```bash
 echo "LITELLM_MASTER_KEY=sk-$(openssl rand -hex 32)" >> .env
+```
+
+Docker Compose reads `.env` for the containers, but it doesn't set anything in
+your host shell. The client examples under [Usage](#usage) read
+`LITELLM_MASTER_KEY` from your shell, so export the configured key there first:
+
+```bash
+export LITELLM_MASTER_KEY="$(sed -n 's/^LITELLM_MASTER_KEY=\([^[:space:]#]*\).*/\1/p' .env | tail -n 1)"
 ```
 
 When `LITELLM_SALT_KEY` is unset, the master key also encrypts the provider
@@ -506,8 +515,8 @@ A local database created with `sk-1234` needs these steps, or can be recreated
 by stopping the stack and removing the `llmaven_postgres_data` volume (this
 deletes all local Postgres data).
 
-**Note**: The LiteLLM Docker image is built with `mlflow` pre-installed (see
-`dockerfiles/litellm.dockerfile`).
+**Note**: The LiteLLM Docker image is built with `mlflow-skinny` pre-installed
+(see `dockerfiles/litellm.dockerfile`).
 
 #### LLM Provider API Keys
 
@@ -618,12 +627,14 @@ FROM ghcr.io/berriai/litellm:v1.106.6@sha256:37e2dafb088a7723beb998590682957386d
 
 RUN python -m ensurepip \
  && python -m pip install --no-cache-dir \
-      "litellm==1.106.6" "mlflow==3.6.0" "azure-storage-blob>=12.0.0,<13" "azure-identity>=1.0.0,<2"
+      "litellm==1.106.6" "mlflow-skinny==3.6.0" "azure-storage-blob>=12.0.0,<13" "azure-identity>=1.0.0,<2"
 ```
 
 The base image has no `pip` executable, so the build bootstraps it with the
 bundled `ensurepip`. Pinning `litellm==1.106.6` again makes the build fail if
-the add-on packages would replace it.
+the add-on packages would replace it. The image uses `mlflow-skinny` because the
+full `mlflow==3.6.0` package caps `cryptography<47`, which would downgrade the
+base image's patched `cryptography`.
 
 Pre-installs MLflow for logging integration and copies the LiteLLM configuration
 file into the image.
@@ -656,6 +667,10 @@ first startup:
 ## Usage
 
 ### Making LLM Requests
+
+These examples read `LITELLM_MASTER_KEY` from your shell. In a new shell, run
+the `export` from [LiteLLM Configuration](#litellm-configuration) in the
+`docker/` directory first.
 
 #### Using cURL
 
@@ -1423,7 +1438,9 @@ redis:
 
 #### Environment Variables for Applications
 
-When running LLMaven applications that need to connect to these services:
+When running LLMaven applications that need to connect to these services (with
+`LITELLM_MASTER_KEY` exported as in
+[LiteLLM Configuration](#litellm-configuration)):
 
 ```bash
 # LiteLLM Proxy
